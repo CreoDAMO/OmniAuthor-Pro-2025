@@ -5411,7 +5411,7 @@ This project is licensed under the Apache 2.0. License - see [LICENSE](LICENSE) 
 - **Documentation**: https://docs.omniauthor.com (Placeholders not actual links)
 - **Discord**: https://discord.gg/omniauthor (Placeholders not actual links)
 - **Email**: support@omniauthor.com (Placeholders not actual links)
-- **GitHub Issues**: https://github.com/omniauthor/pro/issues (Placeholders not actual links)
+- **GitHub Issues**:  https://github.com/CreoDAMO/OmniAuthor-Pro-2025.git
 
 
 ## 🎯 Roadmap
