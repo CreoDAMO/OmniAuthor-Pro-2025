@@ -1,0 +1,161 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "OmniAuthor Pro 2025 - Production Dashboard",
+    "description": "Comprehensive monitoring for OmniAuthor Pro platform",
+    "tags": ["omniauthor", "production", "monitoring"],
+    "timezone": "utc",
+    "refresh": "30s",
+    "schemaVersion": 39,
+    "panels": [
+      {
+        "id": 1,
+        "title": "System Overview",
+        "type": "stat",
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "up{job=\"omniauthor-backend\"}",
+            "legendFormat": "Backend Status"
+          },
+          {
+            "expr": "up{job=\"omniauthor-frontend\"}",
+            "legendFormat": "Frontend Status"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "green", "value": 1}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "API Response Time (95th percentile)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"omniauthor-backend\"}[5m])) by (le, route))",
+            "legendFormat": "{{route}}"
+          }
+        ],
+        "yAxes": [{"unit": "s"}]
+      },
+      {
+        "id": 3,
+        "title": "Active Users",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+        "targets": [
+          {
+            "expr": "sum(websocket_connections_total)",
+            "legendFormat": "WebSocket Connections"
+          },
+          {
+            "expr": "sum(rate(user_sessions_total[5m]))",
+            "legendFormat": "Active Sessions"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "AI Usage Metrics",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+        "targets": [
+          {
+            "expr": "sum(rate(ai_requests_total[5m])) by (type)",
+            "legendFormat": "{{type}}"
+          },
+          {
+            "expr": "sum(rate(ai_errors_total[5m]))",
+            "legendFormat": "AI Errors"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Blockchain Transactions",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+        "targets": [
+          {
+            "expr": "sum(rate(blockchain_transactions_total[5m])) by (chain, type)",
+            "legendFormat": "{{chain}} - {{type}}"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Revenue Metrics",
+        "type": "stat",
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 24},
+        "targets": [
+          {
+            "expr": "sum(subscription_revenue_total)",
+            "legendFormat": "Total Subscription Revenue"
+          },
+          {
+            "expr": "sum(platform_fees_total)",
+            "legendFormat": "Platform Fees"
+          },
+          {
+            "expr": "sum(blockchain_fees_total)",
+            "legendFormat": "Blockchain Fees"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": 0}
+              ]
+            },
+            "unit": "currencyUSD"
+          }
+        }
+      },
+      {
+        "id": 7,
+        "title": "Error Rate",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 32},
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total{status=~\"5..\"}[5m])) / sum(rate(http_requests_total[5m]))",
+            "legendFormat": "5xx Error Rate"
+          },
+          {
+            "expr": "sum(rate(graphql_errors_total[5m]))",
+            "legendFormat": "GraphQL Errors"
+          }
+        ],
+        "yAxes": [{"unit": "percentunit"}]
+      },
+      {
+        "id": 8,
+        "title": "Database Performance",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 32},
+        "targets": [
+          {
+            "expr": "mongodb_op_latencies_histogram{type=\"command\"}",
+            "legendFormat": "MongoDB Latency"
+          },
+          {
+            "expr": "redis_connected_clients",
+            "legendFormat": "Redis Connections"
+          }
+        ]
+      }
+    ]
+  }
+}
