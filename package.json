@@ -1,0 +1,39 @@
+{
+  "name": "omniauthor-pro",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "bootstrap": "lerna bootstrap",
+    "build": "lerna run build",
+    "test": "lerna run test",
+    "dev:server": "lerna run dev --scope=@omniauthor/server",
+    "dev:client": "lerna run dev --scope=@omniauthor/client",
+    "dev:mobile": "lerna run dev --scope=@omniauthor/mobile",
+    "deploy": "lerna run deploy",
+    "lint": "lerna run lint",
+    "audit": "node scripts/audit.js",
+    "contracts:deploy": "lerna run deploy --scope=@omniauthor/contracts"
+  },
+  "devDependencies": {
+    "lerna": "^6.0.0",
+    "@typescript-eslint/eslint-plugin": "^5.0.0",
+    "eslint": "^8.0.0",
+    "prettier": "^2.0.0",
+    "husky": "^8.0.0",
+    "lint-staged": "^13.0.0"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ]
+  }
+}
