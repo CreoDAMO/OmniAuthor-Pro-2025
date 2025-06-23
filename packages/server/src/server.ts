@@ -4,7 +4,10 @@ import { expressMiddleware } from '@apollo/server/express4';
 import cors from 'cors';
 
 const app = express();
-const port = 4000;
+const port = process.env.PORT || 4000;
+
+// Export app for testing
+export { app };
 
 // GraphQL Schema
 const typeDefs = `#graphql
@@ -56,7 +59,7 @@ async function startServer() {
   });
 
   // Start server
-  app.listen(port, '0.0.0.0', () => {
+  app.listen(Number(port), '0.0.0.0', () => {
     console.log(`🚀 Server running at http://0.0.0.0:${port}`);
     console.log(`📈 Health check at http://0.0.0.0:${port}/health`);
     console.log(`🎯 GraphQL endpoint at http://0.0.0.0:${port}/graphql`);
