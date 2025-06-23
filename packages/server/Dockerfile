@@ -49,6 +49,7 @@ RUN npm ci --only=production && npm cache clean --force
 # Copy built application
 COPY --from=builder --chown=omniauthor:nodejs /app/packages/server/dist ./dist
 COPY --from=builder --chown=omniauthor:nodejs /app/packages/shared/dist ./node_modules/@omniauthor/shared/dist
+COPY --from=builder --chown=omniauthor:nodejs /app/packages/server/src/healthcheck.js ./dist/healthcheck.js
 
 
 # Set up health check
