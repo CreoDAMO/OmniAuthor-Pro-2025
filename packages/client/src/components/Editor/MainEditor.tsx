@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useMutation, useSubscription, useQuery } from '@apollo/client';
 import { toast } from 'react-hot-toast';
 import { debounce } from 'lodash';
@@ -14,7 +14,7 @@ import {
 } from '@lexical/react';
 import { $getRoot, $createParagraphNode, $createTextNode } from 'lexical';
 
-import { ADD_PARAGRAPH, UPDATE_MANUSCRIPT } from '../../graphql/mutations';
+import { ADD_PARAGRAPH } from '../../graphql/mutations';
 import { PARAGRAPH_ADDED_SUBSCRIPTION } from '../../graphql/subscriptions';
 import { GET_PARAGRAPHS, CREATE_COINBASE_CHARGE } from '../../graphql/queries';
 import { useAuth } from '../../contexts/AuthContext';
@@ -50,7 +50,7 @@ const MainEditor: React.FC<MainEditorProps> = ({ manuscriptId }) => {
     refetchQueries: [{ query: GET_PARAGRAPHS, variables: { manuscriptId } }],
   });
 
-  const [_updateManuscript] = useMutation(UPDATE_MANUSCRIPT);
+
 
   const [createCoinbaseCharge] = useMutation(CREATE_COINBASE_CHARGE, {
     onCompleted: (data) => {
@@ -101,27 +101,29 @@ const MainEditor: React.FC<MainEditorProps> = ({ manuscriptId }) => {
     }
   }, [paragraphsData]);
 
-  const debouncedSave = useCallback(
-    debounce(async (text: string) => {
-      if (!text.trim()) return;
-      try {
-        await addParagraph({
-          variables: {
-            input: {
-              manuscriptId,
-              text: text.slice(-1000),
-              source: 'HUMAN',
-            },
+  const saveFunction = useCallback(async (text: string) => {
+    if (!text.trim()) return;
+    try {
+      await addParagraph({
+        variables: {
+          input: {
+            manuscriptId,
+            text: text.slice(-1000),
+            source: 'HUMAN',
           },
-        });
-        setLastSaved(new Date());
-        setIsTyping(false);
-        toast.success('Content saved');
-      } catch (error) {
-        toast.error('Auto-save failed');
-      }
-    }, 3000),
-    [manuscriptId, addParagraph, setLastSaved, setIsTyping]
+        },
+      });
+      setLastSaved(new Date());
+      setIsTyping(false);
+      toast.success('Content saved');
+    } catch (error) {
+      toast.error('Auto-save failed');
+    }
+  }, [manuscriptId, addParagraph]);
+
+  const debouncedSave = useMemo(
+    () => debounce(saveFunction, 3000),
+    [saveFunction]
   );
 
   const onEditorChange = (editorState: unknown) => {
