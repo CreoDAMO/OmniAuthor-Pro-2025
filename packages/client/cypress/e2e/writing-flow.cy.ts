@@ -1,9 +1,6 @@
 describe('Writing Flow E2E Tests', () => {
   beforeEach(() => {
-    // Mock authentication
     cy.window().its('localStorage').invoke('setItem', 'token', 'mock-jwt-token');
-    
-    // Intercept GraphQL requests
     cy.intercept('POST', '/graphql', (req) => {
       if (req.body.operationName === 'GetManuscripts') {
         req.reply({
@@ -22,8 +19,6 @@ describe('Writing Flow E2E Tests', () => {
           },
         });
       }
-
-
       if (req.body.operationName === 'GetParagraphs') {
         req.reply({
           data: {
@@ -39,8 +34,6 @@ describe('Writing Flow E2E Tests', () => {
           },
         });
       }
-
-
       if (req.body.operationName === 'AddParagraph') {
         req.reply({
           data: {
@@ -54,78 +47,68 @@ describe('Writing Flow E2E Tests', () => {
           },
         });
       }
+      if (req.body.operationName === 'CreateSubscription') {
+        req.reply({
+          data: {
+            createSubscription: {
+              id: 'sub123',
+              userId: 'user123',
+              tier: req.body.variables.input.tier,
+              status: 'ACTIVE',
+              currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+              cancelAtPeriodEnd: false,
+              chargeId: req.body.variables.input.newCoinbaseCharge ? 'charge123' : null,
+              paymentMethod: req.body.variables.input.newCoinbaseCharge ? 'COINBASE' : 'STRIPE',
+            },
+          },
+        });
+      }
+      if (req.body.operationName === 'CreateCoinbaseCharge') {
+        req.reply({
+          data: {
+            createCoinbaseCharge: {
+              id: 'charge123',
+              code: 'ABC123',
+              name: 'Test Charge',
+              description: 'Test payment',
+              local_price: { amount: '10.00', currency: 'USD' },
+              redirect_url: 'http://localhost:3000/payment/success',
+              cancel_url: 'http://localhost:3000/payment/cancel',
+            },
+          },
+        });
+      }
     }).as('graphqlRequest');
-
-
     cy.visit('/dashboard');
   });
 
-
   it('completes full writing workflow', () => {
-    // Navigate to editor
     cy.contains('Test Manuscript').click();
     cy.wait('@graphqlRequest');
-
-
-    // Verify editor loads
     cy.get('[data-testid="text-editor"]').should('be.visible');
     cy.get('[data-testid="ai-panel"]').should('be.visible');
-
-
-    // Add new content
     const newText = 'This is a new paragraph added by the user.';
-    cy.get('[data-testid="text-editor"]')
-      .clear()
-      .type(newText);
-
-
-    // Wait for auto-save
-    cy.wait(3500); // Auto-save debounce delay
+    cy.get('[data-testid="text-editor"]').clear().type(newText);
+    cy.wait(3500);
     cy.wait('@graphqlRequest');
-
-
-    // Verify content was saved
     cy.get('[data-testid="auto-save-indicator"]').should('contain', 'Saved');
-
-
-    // Test AI suggestions
     cy.get('[data-testid="ai-suggest-btn"]').click();
     cy.wait('@graphqlRequest');
-
-
-    // Verify AI panel shows suggestions
     cy.get('[data-testid="ai-suggestions"]').should('be.visible');
-
-
-    // Test collaboration
     cy.get('[data-testid="collaboration-btn"]').click();
     cy.get('[data-testid="invite-collaborator-modal"]').should('be.visible');
-
-
-    // Test royalties calculator
     cy.get('[data-testid="royalties-tab"]').click();
     cy.get('[data-testid="royalties-calculator"]').should('be.visible');
-
-
-    // Change platform and verify calculation
     cy.get('[data-testid="platform-select"]').select('NEURAL_BOOKS');
     cy.get('[data-testid="price-input"]').clear().type('19.99');
-
-
-    // Verify results update
     cy.get('[data-testid="earnings-per-book"]').should('contain', '$');
     cy.get('[data-testid="blockchain-indicator"]').should('be.visible');
   });
 
-
   it('handles real-time collaboration', () => {
     cy.visit('/editor/ms123');
     cy.wait('@graphqlRequest');
-
-
-    // Simulate another user adding content
     cy.window().then((win) => {
-      // Trigger subscription update
       const event = new CustomEvent('paragraph-added', {
         detail: {
           id: 'para_collab',
@@ -136,55 +119,27 @@ describe('Writing Flow E2E Tests', () => {
       });
       win.dispatchEvent(event);
     });
-
-
-    // Verify notification appears
     cy.get('[data-testid="collaboration-notification"]')
       .should('be.visible')
       .should('contain', 'added content');
-
-
-    // Verify content is updated
-    cy.get('[data-testid="text-editor"]')
-      .should('contain', 'Content added by collaborator');
+    cy.get('[data-testid="text-editor"]').should('contain', 'Content added by collaborator');
   });
-
 
   it('processes blockchain royalty payout', () => {
     cy.visit('/editor/ms123');
     cy.get('[data-testid="royalties-tab"]').click();
-
-
-    // Set up Neural Books calculation
     cy.get('[data-testid="platform-select"]').select('NEURAL_BOOKS');
     cy.get('[data-testid="price-input"]').clear().type('15.99');
-
-
-    // Process payout
     cy.get('[data-testid="process-payout-btn"]').click();
     cy.get('[data-testid="payout-modal"]').should('be.visible');
-
-
-    // Select blockchain
     cy.get('[data-testid="chain-select"]').select('POLYGON');
-    cy.get('[data-testid="wallet-address-input"]')
-      .type('0x742d35cc6431bc47d8b9e8f1f9a2b1c4d7e8f9a0');
-
-
-    // Confirm payout
+    cy.get('[data-testid="wallet-address-input"]').type('0x742d35cc6431bc47d8b9e8f1f9a2b1c4d7e8f9a0');
     cy.get('[data-testid="confirm-payout-btn"]').click();
     cy.wait('@graphqlRequest');
-
-
-    // Verify success message
-    cy.get('[data-testid="success-toast"]')
-      .should('be.visible')
-      .should('contain', 'Royalty payout initiated');
+    cy.get('[data-testid="success-toast"]').should('be.visible').should('contain', 'Royalty payout initiated');
   });
 
-
   it('handles AI usage limits for free tier', () => {
-    // Mock free tier user
     cy.intercept('POST', '/graphql', (req) => {
       if (req.body.operationName === 'Me') {
         req.reply({
@@ -198,8 +153,6 @@ describe('Writing Flow E2E Tests', () => {
           },
         });
       }
-
-
       if (req.body.operationName === 'GenerateAISuggestion') {
         req.reply({
           errors: [
@@ -210,63 +163,78 @@ describe('Writing Flow E2E Tests', () => {
         });
       }
     }).as('graphqlRequest');
-
-
     cy.visit('/editor/ms123');
     cy.wait('@graphqlRequest');
-
-
-    // Try to use AI suggestion
     cy.get('[data-testid="ai-suggest-btn"]').click();
     cy.wait('@graphqlRequest');
-
-
-    // Verify error message
-    cy.get('[data-testid="error-toast"]')
-      .should('be.visible')
-      .should('contain', 'AI usage limit exceeded');
-
-
-    // Verify upgrade prompt
+    cy.get('[data-testid="error-toast"]').should('be.visible').should('contain', 'AI usage limit exceeded');
     cy.get('[data-testid="upgrade-prompt"]').should('be.visible');
   });
 
+  it('processes Coinbase subscription payment', () => {
+    cy.visit('/subscription');
+    cy.get('[data-testid="subscription-tier-select"]').select('PRO');
+    cy.get('[data-testid="pay-with-coinbase-btn"]').click();
+    cy.wait('@graphqlRequest');
+    cy.get('[data-testid="coinbase-payment-redirect"]').should('be.visible');
+    cy.get('[data-testid="coinbase-payment-redirect"]').click();
+    cy.url().should('include', 'commerce.coinbase.com');
+    cy.get('[data-testid="success-toast"]').should('be.visible').should('contain', 'Payment initiated');
+  });
+
+  it('processes Coinbase one-time payment', () => {
+    cy.visit('/payment');
+    cy.get('[data-testid="pay-with-coinbase-btn"]').click();
+    cy.get('[data-testid="payment-form"]').should('be.visible');
+    cy.get('[data-testid="payment-amount"]').type('10.00');
+    cy.get('[data-testid="payment-description"]').type('Test payment');
+    cy.get('[data-testid="submit-payment-btn"]').click();
+    cy.wait('@graphqlRequest');
+    cy.get('[data-testid="coinbase-payment-redirect"]').should('be.visible');
+    cy.get('[data-testid="coinbase-payment-redirect"]').click();
+    cy.url().should('include', 'commerce.coinbase.com');
+    cy.get('[data-testid="success-toast"]').should('be.visible').should('contain', 'Payment initiated');
+  });
+
+  it('handles Coinbase payment failure', () => {
+    cy.intercept('POST', '/graphql', (req) => {
+      if (req.body.operationName === 'CreateCoinbaseCharge') {
+        req.reply({
+          errors: [
+            {
+              message: 'Coinbase payment not allowed for this subscription tier',
+            },
+          ],
+        });
+      }
+    }).as('graphqlRequest');
+    cy.visit('/payment');
+    cy.get('[data-testid="pay-with-coinbase-btn"]').click();
+    cy.get('[data-testid="payment-form"]').should('be.visible');
+    cy.get('[data-testid="payment-amount"]').type('10.00');
+    cy.get('[data-testid="payment-description"]').type('Test payment');
+    cy.get('[data-testid="submit-payment-btn"]').click();
+    cy.wait('@graphqlRequest');
+    cy.get('[data-testid="error-toast"]').should('be.visible').should('contain', 'Coinbase payment not allowed');
+  });
 
   it('validates form inputs', () => {
     cy.visit('/editor/ms123');
     cy.get('[data-testid="royalties-tab"]').click();
-
-
-    // Test price validation
     cy.get('[data-testid="price-input"]').clear().type('0.50');
-    cy.get('[data-testid="price-input"]').should('have.value', '0.99'); // Min value
-
-
-    // Test page count validation
+    cy.get('[data-testid="price-input"]').should('have.value', '0.99');
     cy.get('[data-testid="page-count-input"]').clear().type('25');
-    cy.get('[data-testid="page-count-input"]').should('have.value', '50'); // Min value
-
-
+    cy.get('[data-testid="page-count-input"]').should('have.value', '50');
     cy.get('[data-testid="page-count-input"]').clear().type('1500');
-    cy.get('[data-testid="page-count-input"]').should('have.value', '1000'); // Max value
+    cy.get('[data-testid="page-count-input"]').should('have.value', '1000');
   });
 
-
   it('handles network errors gracefully', () => {
-    // Simulate network failure
     cy.intercept('POST', '/graphql', { forceNetworkError: true }).as('networkError');
-
-
     cy.visit('/editor/ms123');
     cy.wait('@networkError');
-
-
-    // Verify error handling
     cy.get('[data-testid="network-error"]').should('be.visible');
     cy.get('[data-testid="retry-button"]').should('be.visible');
-
-
-    // Test retry functionality
     cy.intercept('POST', '/graphql', (req) => {
       req.reply({
         data: {
@@ -274,12 +242,8 @@ describe('Writing Flow E2E Tests', () => {
         },
       });
     }).as('retryRequest');
-
-
     cy.get('[data-testid="retry-button"]').click();
     cy.wait('@retryRequest');
-
-
     cy.get('[data-testid="network-error"]').should('not.exist');
   });
 });
