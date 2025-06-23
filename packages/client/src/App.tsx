@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ApolloProvider } from '@apollo/client';
-import { Toaster } from 'react-hot-toast';
+import { Toaster, toast } from 'react-hot-toast';
 import { ErrorBoundary } from 'react-error-boundary';
 import { motion } from 'framer-motion';
 
@@ -26,7 +26,7 @@ import DashboardPage from './pages/DashboardPage';
 import SubscriptionPage from './pages/SubscriptionPage';
 import CollaborationPage from './pages/CollaborationPage';
 
-import { SUBSCRIPTION_PLANS } from '@omniauthor/shared';
+
 import { logger } from './utils/logger'; // Added for client-side logging
 
 import './styles/globals.css';

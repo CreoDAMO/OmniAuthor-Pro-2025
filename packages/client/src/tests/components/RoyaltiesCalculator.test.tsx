@@ -7,7 +7,7 @@ import userEvent from '@testing-library/user-event';
 import RoyaltiesCalculator from '../../components/Royalties/RoyaltiesCalculator';
 import { CALCULATE_ROYALTIES, CREATE_COINBASE_CHARGE } from '../../graphql/queries';
 import { PROCESS_ROYALTY_PAYOUT } from '../../graphql/mutations';
-import { SUBSCRIPTION_PLANS, ROYALTY_RATES, BLOCKCHAIN_CONFIG } from '@omniauthor/shared';
+
 
 const mocks = [
   {

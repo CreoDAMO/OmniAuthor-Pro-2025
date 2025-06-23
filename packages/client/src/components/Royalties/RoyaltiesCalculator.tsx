@@ -8,9 +8,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recha
 
 import { CALCULATE_ROYALTIES, CREATE_COINBASE_CHARGE } from '../../graphql/queries';
 import { PROCESS_ROYALTY_PAYOUT } from '../../graphql/mutations';
-import { ROYALTY_RATES, BLOCKCHAIN_CONFIG, SUBSCRIPTION_PLANS } from '@omniauthor/shared';
 
-import BlockchainSelector from '../Blockchain/BlockchainSelector';
 import PayoutModal from './PayoutModal';
 
 interface RoyaltyFormData {
