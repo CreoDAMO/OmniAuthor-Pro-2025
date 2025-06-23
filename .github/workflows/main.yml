@@ -1,18 +1,15 @@
 name: OmniAuthor Pro CI/CD
 
-
 on:
   push:
     branches: [main, develop]
   pull_request:
     branches: [main]
 
-
 env:
   NODE_VERSION: '18'
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-
 
 jobs:
   test:
@@ -32,11 +29,9 @@ jobs:
         ports:
           - 6379:6379
 
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -44,63 +39,74 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
-
       - name: Install dependencies
         run: npm ci
 
-
       - name: Lint codebase
         run: npm run lint
-
 
       - name: Run shared package tests
         working-directory: packages/shared
         run: npm test
 
-
       - name: Run backend tests
         working-directory: packages/server
         env:
-          MONGO_URI: mongodb://test:test@localhost:27017/test
-          REDIS_URL: redis://localhost:6379
-          JWT_SECRET: test-secret
+          # Replaced hardcoded values with GitHub Secrets mirroring Vercel
+          MONGO_URI: ${{ secrets.TEST_MONGO_URI }}
+          REDIS_URL: ${{ secrets.TEST_REDIS_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+          POLYGON_RPC_URL: ${{ secrets.POLYGON_RPC_URL }}
+          BASE_RPC_URL: ${{ secrets.BASE_RPC_URL }}
+          SOLANA_RPC_URL: ${{ secrets.SOLANA_RPC_URL }}
+          PLATFORM_PRIVATE_KEY: ${{ secrets.PLATFORM_PRIVATE_KEY }}
+          SOLANA_PRIVATE_KEY: ${{ secrets.SOLANA_PRIVATE_KEY }}
+          POLYGON_RIGHTS_CONTRACT: ${{ secrets.POLYGON_RIGHTS_CONTRACT }}
+          BASE_RIGHTS_CONTRACT: ${{ secrets.BASE_RIGHTS_CONTRACT }}
+          SOLANA_RIGHTS_PROGRAM: ${{ secrets.SOLANA_RIGHTS_PROGRAM }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+          CLIENT_URL: ${{ secrets.CLIENT_URL }}
+          COINBASE_COMMERCE_API_KEY: ${{ secrets.COINBASE_COMMERCE_API_KEY }}
+          COINBASE_COMMERCE_WEBHOOK_SECRET: ${{ secrets.COINBASE_COMMERCE_WEBHOOK_SECRET }}
         run: npm test
-
 
       - name: Run frontend tests
         working-directory: packages/client
+        env:
+          # Use secrets for client variables
+          VITE_GRAPHQL_URL: ${{ secrets.VITE_GRAPHQL_URL }}
+          VITE_WS_URL: ${{ secrets.VITE_WS_URL }}
+          VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
         run: npm test -- --coverage
-
 
       - name: Upload coverage reports
         uses: codecov/codecov-action@v3
         with:
           directory: ./packages/client/coverage
 
-
       - name: Build backend
         working-directory: packages/server
         run: npm run build
 
-
       - name: Build frontend
         working-directory: packages/client
         env:
-          VITE_GRAPHQL_URL: ${{ secrets.GRAPHQL_URL }}
-          VITE_WS_URL: ${{ secrets.WS_URL }}
+          VITE_GRAPHQL_URL: ${{ secrets.VITE_GRAPHQL_URL }}
+          VITE_WS_URL: ${{ secrets.VITE_WS_URL }}
+          VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
         run: npm run build
-
 
   security:
     name: Security Scan
     runs-on: ubuntu-latest
     needs: test
 
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -108,20 +114,16 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
-
       - name: Install dependencies
         run: npm ci
 
-
       - name: Run security audit
         run: npm audit --audit-level=moderate
-
 
       - name: Run Snyk security scan
         uses: snyk/actions/node@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-
 
       - name: Run smart contract audit
         working-directory: packages/contracts
@@ -129,17 +131,14 @@ jobs:
           npm install -g @mythx/cli
           mythx analyze --api-key ${{ secrets.MYTHX_API_KEY }} contracts/
 
-
   e2e:
     name: E2E Tests
     runs-on: ubuntu-latest
     needs: test
 
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -147,37 +146,49 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
-
       - name: Install dependencies
         run: npm ci
-
 
       - name: Start backend
         working-directory: packages/server
         env:
+          # Use secrets for all backend variables
           MONGO_URI: ${{ secrets.TEST_MONGO_URI }}
           REDIS_URL: ${{ secrets.TEST_REDIS_URL }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+          POLYGON_RPC_URL: ${{ secrets.POLYGON_RPC_URL }}
+          BASE_RPC_URL: ${{ secrets.BASE_RPC_URL }}
+          SOLANA_RPC_URL: ${{ secrets.SOLANA_RPC_URL }}
+          PLATFORM_PRIVATE_KEY: ${{ secrets.PLATFORM_PRIVATE_KEY }}
+          SOLANA_PRIVATE_KEY: ${{ secrets.SOLANA_PRIVATE_KEY }}
+          POLYGON_RIGHTS_CONTRACT: ${{ secrets.POLYGON_RIGHTS_CONTRACT }}
+          BASE_RIGHTS_CONTRACT: ${{ secrets.BASE_RIGHTS_CONTRACT }}
+          SOLANA_RIGHTS_PROGRAM: ${{ secrets.SOLANA_RIGHTS_PROGRAM }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+          CLIENT_URL: ${{ secrets.CLIENT_URL }}
+          COINBASE_COMMERCE_API_KEY: ${{ secrets.COINBASE_COMMERCE_API_KEY }}
+          COINBASE_COMMERCE_WEBHOOK_SECRET: ${{ secrets.COINBASE_COMMERCE_WEBHOOK_SECRET }}
         run: npm start &
-
 
       - name: Start frontend
         working-directory: packages/client
         env:
-          VITE_GRAPHQL_URL: http://localhost:4000/graphql
+          VITE_GRAPHQL_URL: ${{ secrets.VITE_GRAPHQL_URL }}
+          VITE_WS_URL: ${{ secrets.VITE_WS_URL }}
+          VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
         run: npm run dev &
-
 
       - name: Wait for services
         run: |
           npx wait-on http://localhost:3000
           npx wait-on http://localhost:4000/health
 
-
       - name: Run Cypress E2E tests
         working-directory: packages/client
         run: npx cypress run
-
 
       - name: Upload Cypress screenshots
         uses: actions/upload-artifact@v3
@@ -186,22 +197,18 @@ jobs:
           name: cypress-screenshots
           path: packages/client/cypress/screenshots
 
-
   build-images:
     name: Build Docker Images
     runs-on: ubuntu-latest
     needs: [test, security]
     if: github.event_name == 'push'
 
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
 
       - name: Login to Container Registry
         uses: docker/login-action@v3
@@ -210,13 +217,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-
 
       - name: Build and push backend image
         uses: docker/build-push-action@v5
@@ -227,7 +232,26 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
+          # Pass environment variables to Docker build
+          build-args: |
+            MONGO_URI=${{ secrets.MONGO_URI }}
+            REDIS_URL=${{ secrets.REDIS_URL }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+            XAI_API_KEY=${{ secrets.XAI_API_KEY }}
+            POLYGON_RPC_URL=${{ secrets.POLYGON_RPC_URL }}
+            BASE_RPC_URL=${{ secrets.BASE_RPC_URL }}
+            SOLANA_RPC_URL=${{ secrets.SOLANA_RPC_URL }}
+            PLATFORM_PRIVATE_KEY=${{ secrets.PLATFORM_PRIVATE_KEY }}
+            SOLANA_PRIVATE_KEY=${{ secrets.SOLANA_PRIVATE_KEY }}
+            POLYGON_RIGHTS_CONTRACT=${{ secrets.POLYGON_RIGHTS_CONTRACT }}
+            BASE_RIGHTS_CONTRACT=${{ secrets.BASE_RIGHTS_CONTRACT }}
+            SOLANA_RIGHTS_PROGRAM=${{ secrets.SOLANA_RIGHTS_PROGRAM }}
+            STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
+            SENDGRID_API_KEY=${{ secrets.SENDGRID_API_KEY }}
+            CLIENT_URL=${{ secrets.CLIENT_URL }}
+            COINBASE_COMMERCE_API_KEY=${{ secrets.COINBASE_COMMERCE_API_KEY }}
+            COINBASE_COMMERCE_WEBHOOK_SECRET=${{ secrets.COINBASE_COMMERCE_WEBHOOK_SECRET }}
 
       - name: Build and push frontend image
         uses: docker/build-push-action@v5
@@ -238,7 +262,10 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
+          build-args: |
+            VITE_GRAPHQL_URL=${{ secrets.VITE_GRAPHQL_URL }}
+            VITE_WS_URL=${{ secrets.VITE_WS_URL }}
+            VITE_STRIPE_PUBLISHABLE_KEY=${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
 
   deploy-staging:
     name: Deploy to Staging
@@ -247,8 +274,10 @@ jobs:
     if: github.ref == 'refs/heads/develop'
     environment: staging
 
-
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Deploy to Render (Staging)
         run: |
           curl -X POST \
@@ -257,7 +286,6 @@ jobs:
             -d '{"serviceId":"${{ secrets.RENDER_STAGING_SERVICE_ID }}"}' \
             https://api.render.com/v1/services/${{ secrets.RENDER_STAGING_SERVICE_ID }}/deploys
 
-
       - name: Deploy to Vercel (Staging)
         uses: amondnet/vercel-action@v25
         with:
@@ -265,7 +293,11 @@ jobs:
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
           working-directory: packages/client
-
+          # Ensure Vercel pulls environment variables from its secrets
+          env: |
+            VITE_GRAPHQL_URL=${{ secrets.VITE_GRAPHQL_URL }}
+            VITE_WS_URL=${{ secrets.VITE_WS_URL }}
+            VITE_STRIPE_PUBLISHABLE_KEY=${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
 
   deploy-production:
     name: Deploy to Production
@@ -274,8 +306,10 @@ jobs:
     if: github.ref == 'refs/heads/main'
     environment: production
 
-
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Deploy backend to Render (Production)
         run: |
           curl -X POST \
@@ -283,7 +317,6 @@ jobs:
             -H "Content-Type: application/json" \
             -d '{"serviceId":"${{ secrets.RENDER_PRODUCTION_SERVICE_ID }}"}' \
             https://api.render.com/v1/services/${{ secrets.RENDER_PRODUCTION_SERVICE_ID }}/deploys
-
 
       - name: Deploy frontend to Vercel (Production)
         uses: amondnet/vercel-action@v25
@@ -293,15 +326,16 @@ jobs:
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
           vercel-args: '--prod'
           working-directory: packages/client
-
+          env: |
+            VITE_GRAPHQL_URL=${{ secrets.VITE_GRAPHQL_URL }}
+            VITE_WS_URL=${{ secrets.VITE_WS_URL }}
+            VITE_STRIPE_PUBLISHABLE_KEY=${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
 
       - name: Update mobile app stores
         run: |
-          # Trigger mobile app deployment pipeline
           curl -X POST \
             -H "Authorization: Bearer ${{ secrets.MOBILE_DEPLOY_TOKEN }}" \
             ${{ secrets.MOBILE_DEPLOY_WEBHOOK }}
-
 
   notify:
     name: Notify Team
@@ -309,12 +343,11 @@ jobs:
     needs: [deploy-production]
     if: always()
 
-
     steps:
       - name: Notify Slack
         uses: 8398a7/action-slack@v3
         with:
           status: ${{ needs.deploy-production.result }}
           channel: '#deployments'
-          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}  # Updated to match variable name
           fields: repo,message,commit,author,action,eventName,ref,workflow
