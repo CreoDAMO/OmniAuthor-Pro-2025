@@ -6,16 +6,18 @@
     "packages/*"
   ],
   "scripts": {
-    "bootstrap": "lerna bootstrap",
-    "build": "lerna run build",
-    "test": "lerna run test",
+    "bootstrap": "lerna bootstrap --use-workspaces",
+    "build": "lerna run build --parallel",
+    "test": "lerna run test --parallel",
     "dev:server": "lerna run dev --scope=@omniauthor/server",
     "dev:client": "lerna run dev --scope=@omniauthor/client",
     "dev:mobile": "lerna run dev --scope=@omniauthor/mobile",
-    "deploy": "lerna run deploy",
-    "lint": "lerna run lint",
+    "deploy": "lerna run deploy --parallel",
+    "lint": "lerna run lint --parallel",
     "audit": "node scripts/audit.js",
-    "contracts:deploy": "lerna run deploy --scope=@omniauthor/contracts"
+    "contracts:deploy": "lerna run deploy --scope=@omniauthor/contracts",
+    "postinstall": "lerna bootstrap --use-workspaces",
+    "prepare": "husky install"
   },
   "devDependencies": {
     "lerna": "^6.0.0",
@@ -35,5 +37,6 @@
       "eslint --fix",
       "prettier --write"
     ]
-  }
+  },
+  "packageManager": "npm@10.8.2"
 }
