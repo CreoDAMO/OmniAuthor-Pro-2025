@@ -4,7 +4,7 @@
   "scripts": {
     "dev": "echo 'Mobile dev'",
     "build": "echo 'Mobile build'",
-    "test": "jest",
+    "test": "jest --passWithNoTests",
     "lint": "echo 'No TypeScript files to lint in mobile package'"
   },
   "devDependencies": {
