@@ -2,10 +2,18 @@ import express from 'express';
 import { Webhook } from '@coinbase/coinbase-commerce-node';
 import { logger } from '../utils/logger';
 import { updatePaymentStatus } from '../services/payment'; // Hypothetical service
+import rateLimit from 'express-rate-limit';
 
 const router = express.Router();
 
-router.post('/coinbase/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+// Define rate limiter: maximum of 100 requests per 15 minutes
+const webhookRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // max 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.',
+});
+
+router.post('/coinbase/webhook', webhookRateLimiter, express.raw({ type: 'application/json' }), async (req, res) => {
   const webhookSecret = process.env.COINBASE_COMMERCE_WEBHOOK_SECRET!;
   const signature = req.headers['x-cc-webhook-signature'] as string;
   const rawBody = req.body;
