@@ -34,20 +34,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Verify package-lock.json exists
-        run: |
-          if [ ! -f package-lock.json ]; then
-            echo "❌ package-lock.json not found. Please run 'npm install' and commit the lock file."
-            exit 1
-          fi
-          echo "✅ package-lock.json found"
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
         run: npm ci --prefer-offline --no-audit # Enforce root package-lock.json
@@ -126,7 +117,6 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
         run: npm ci --prefer-offline --no-audit
@@ -146,21 +136,13 @@ jobs:
         run: |
           npm install -g @mythx/cli
           mythx analyze --api-key ${{ secrets.MYTHX_API_KEY }} contracts/
-        continue-on-error: true
 
       - name: Scan Docker images with Trivy
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}'
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-        continue-on-error: true
-
-      - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: 'trivy-results.sarif'
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:${{ github.sha }}
+          severity: HIGH,CRITICAL
+          format: table
 
   e2e:
     name: E2E Tests
@@ -176,53 +158,58 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: package-lock.json
 
-      - name: Install dependencies
-        run: npm ci --prefer-offline --no-audit
-
-      - name: Cache Cypress binary
+      - name: Cache Cypress
         uses: actions/cache@v4
         with:
           path: ~/.cache/Cypress
           key: cypress-${{ runner.os }}-${{ hashFiles('packages/client/package-lock.json') }}
-          restore-keys: |
-            cypress-${{ runner.os }}-
 
-      - name: Build frontend
-        working-directory: packages/client
-        env:
-          VITE_GRAPHQL_URL: http://localhost:4000/graphql
-          VITE_WS_URL: ws://localhost:4000/graphql
-          VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
-          VITE_COINBASE_REDIRECT_URL: http://localhost:3000/payment/success
-          VITE_COINBASE_CANCEL_URL: http://localhost:3000/payment/cancel
-        run: npm run build
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
 
-      - name: Start backend server
+      - name: Start backend
         working-directory: packages/server
         env:
-          NODE_ENV: test
-          MONGO_URI: mongodb://localhost:27017/test
-          REDIS_URL: redis://localhost:6379
-          JWT_SECRET: test-secret
+          MONGO_URI: ${{ secrets.TEST_MONGO_URI }}
+          REDIS_URL: ${{ secrets.TEST_REDIS_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+          POLYGON_RPC_URL: ${{ secrets.POLYGON_RPC_URL }}
+          BASE_RPC_URL: ${{ secrets.BASE_RPC_URL }}
+          SOLANA_RPC_URL: ${{ secrets.SOLANA_RPC_URL }}
+          PLATFORM_PRIVATE_KEY: ${{ secrets.PLATFORM_PRIVATE_KEY }}
+          SOLANA_PRIVATE_KEY: ${{ secrets.SOLANA_PRIVATE_KEY }}
+          POLYGON_RIGHTS_CONTRACT: ${{ secrets.POLYGON_RIGHTS_CONTRACT }}
+          BASE_RIGHTS_CONTRACT: ${{ secrets.BASE_RIGHTS_CONTRACT }}
+          SOLANA_RIGHTS_PROGRAM: ${{ secrets.SOLANA_RIGHTS_PROGRAM }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+          CLIENT_URL: ${{ secrets.CLIENT_URL }}
           COINBASE_COMMERCE_API_KEY: ${{ secrets.COINBASE_COMMERCE_API_KEY }}
           COINBASE_COMMERCE_WEBHOOK_SECRET: ${{ secrets.COINBASE_COMMERCE_WEBHOOK_SECRET }}
         run: npm start &
 
-      - name: Start frontend server
+      - name: Start frontend
         working-directory: packages/client
-        run: npm run preview &
+        env:
+          VITE_GRAPHQL_URL: ${{ secrets.VITE_GRAPHQL_URL }}
+          VITE_WS_URL: ${{ secrets.VITE_WS_URL }}
+          VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
+          VITE_COINBASE_REDIRECT_URL: ${{ secrets.VITE_COINBASE_REDIRECT_URL }}
+          VITE_COINBASE_CANCEL_URL: ${{ secrets.VITE_COINBASE_CANCEL_URL }}
+        run: npm run dev &
 
-      - name: Wait for servers
+      - name: Wait for services
         run: |
-          npx wait-on http://localhost:3000 http://localhost:4000/health --timeout 60000
+          npx wait-on http://localhost:3000
+          npx wait-on http://localhost:4000/health
+          npx wait-on http://localhost:4000/api/coinbase/webhook
 
       - name: Run Cypress E2E tests
         working-directory: packages/client
-        run: npm run test:e2e -- --env grepTags=@coinbase,@theme
-        env:
-          CYPRESS_baseUrl: http://localhost:3000
+        run: npx cypress run --env grepTags=@theme,@coinbase # Run theme and Coinbase tests
 
       - name: Upload Cypress screenshots
         uses: actions/upload-artifact@v4
@@ -230,13 +217,6 @@ jobs:
         with:
           name: cypress-screenshots
           path: packages/client/cypress/screenshots
-
-      - name: Upload Cypress videos
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: cypress-videos
-          path: packages/client/cypress/videos
 
   build-images:
     name: Build Docker Images
@@ -251,7 +231,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to Container Registry
+      - name: Login to Container Registry
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -264,9 +244,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=sha,prefix={{branch}}-
+            type=sha,format=long,prefix=${{ github.event_name == 'push' && github.ref_name || 'pr-' }}
 
       - name: Build and push backend image
         uses: docker/build-push-action@v5
@@ -277,6 +255,25 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            MONGO_URI=${{ secrets.MONGO_URI }}
+            REDIS_URL=${{ secrets.REDIS_URL }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+            XAI_API_KEY=${{ secrets.XAI_API_KEY }}
+            POLYGON_RPC_URL=${{ secrets.POLYGON_RPC_URL }}
+            BASE_RPC_URL=${{ secrets.BASE_RPC_URL }}
+            SOLANA_RPC_URL=${{ secrets.SOLANA_RPC_URL }}
+            PLATFORM_PRIVATE_KEY=${{ secrets.PLATFORM_PRIVATE_KEY }}
+            SOLANA_PRIVATE_KEY=${{ secrets.SOLANA_PRIVATE_KEY }}
+            POLYGON_RIGHTS_CONTRACT=${{ secrets.POLYGON_RIGHTS_CONTRACT }}
+            BASE_RIGHTS_CONTRACT=${{ secrets.BASE_RIGHTS_CONTRACT }}
+            SOLANA_RIGHTS_PROGRAM=${{ secrets.SOLANA_RIGHTS_PROGRAM }}
+            STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
+            SENDGRID_API_KEY=${{ secrets.SENDGRID_API_KEY }}
+            CLIENT_URL=${{ secrets.CLIENT_URL }}
+            COINBASE_COMMERCE_API_KEY=${{ secrets.COINBASE_COMMERCE_API_KEY }}
+            COINBASE_COMMERCE_WEBHOOK_SECRET=${{ secrets.COINBASE_COMMERCE_WEBHOOK_SECRET }}
 
       - name: Build and push frontend image
         uses: docker/build-push-action@v5
@@ -287,6 +284,12 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            VITE_GRAPHQL_URL=${{ secrets.VITE_GRAPHQL_URL }}
+            VITE_WS_URL=${{ secrets.VITE_WS_URL }}
+            VITE_STRIPE_PUBLISHABLE_KEY=${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
+            VITE_COINBASE_REDIRECT_URL=${{ secrets.VITE_COINBASE_REDIRECT_URL }}
+            VITE_COINBASE_CANCEL_URL=${{ secrets.VITE_COINBASE_CANCEL_URL }}
 
   deploy-staging:
     name: Deploy to Staging
@@ -299,7 +302,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Deploy backend to Render
+      - name: Deploy to Render (Staging)
         id: render-deploy
         run: |
           RESPONSE=$(curl -s -X POST \
@@ -310,7 +313,7 @@ jobs:
           echo "Render deploy response: $RESPONSE"
           echo "render_deploy_response=$RESPONSE" >> $GITHUB_OUTPUT
 
-      - name: Deploy frontend to Vercel
+      - name: Deploy to Vercel (Staging)
         uses: amondnet/vercel-action@v25
         id: vercel-deploy
         with:
@@ -322,40 +325,32 @@ jobs:
             VITE_GRAPHQL_URL=${{ secrets.VITE_GRAPHQL_URL }}
             VITE_WS_URL=${{ secrets.VITE_WS_URL }}
             VITE_STRIPE_PUBLISHABLE_KEY=${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
-            VITE_COINBASE_URL=${{ secrets.VITE_COINBASE_URL }}
             VITE_COINBASE_REDIRECT_URL=${{ secrets.VITE_COINBASE_REDIRECT_URL }}
             VITE_COINBASE_CANCEL_URL=${{ secrets.VITE_COINBASE_CANCEL_URL }}
 
-      - name: Enhanced health checks
+      - name: Health checks
         run: |
           BACKEND_URL=https://api-staging.omniauthor.com
           FRONTEND_URL=https://staging.omniauthor.com
           COINBASE_WEBHOOK_URL=$BACKEND_URL/api/coinbase/webhook
           
           # Backend health
-          echo "Checking backend health..."
           if [[ $(curl -s -o /dev/null -w "%{http_code}" $BACKEND_URL/health) != "200" ]]; then
-            echo "❌ Backend health check failed"
+            echo "Backend health check failed"
             exit 1
           fi
-          echo "✅ Backend health check passed"
           
           # Frontend health
-          echo "Checking frontend health..."
           if [[ $(curl -s -o /dev/null -w "%{http_code}" $FRONTEND_URL) != "200" ]]; then
-            echo "❌ Frontend health check failed"
+            echo "Frontend health check failed"
             exit 1
           fi
-          echo "✅ Frontend health check passed"
           
           # Coinbase webhook health
-          echo "Checking Coinbase webhook health..."
-          WEBHOOK_STATUS=$(curl -s -o /dev/null -w "%{http_code}" $COINBASE_WEBHOOK_URL)
-          if [[ $WEBHOOK_STATUS != "200" && $WEBHOOK_STATUS != "405" ]]; then
-            echo "❌ Coinbase webhook health check failed (HTTP $WEBHOOK_STATUS)"
+          if [[ $(curl -s -o /dev/null -w "%{http_code}" $COINBASE_WEBHOOK_URL) != "200" ]]; then
+            echo "Coinbase webhook health check failed"
             exit 1
           fi
-          echo "✅ Coinbase webhook endpoint accessible"
 
       - name: Rollback on failure
         if: failure()
@@ -405,36 +400,29 @@ jobs:
             VITE_COINBASE_REDIRECT_URL=https://production.omniauthor.com/payment/success
             VITE_COINBASE_CANCEL_URL=https://production.omniauthor.com/payment/cancel
 
-      - name: Enhanced health checks
+      - name: Health checks
         run: |
           BACKEND_URL=https://api-production.omniauthor.com
           FRONTEND_URL=https://production.omniauthor.com
           COINBASE_WEBHOOK_URL=$BACKEND_URL/api/coinbase/webhook
           
           # Backend health
-          echo "Checking backend health..."
           if [[ $(curl -s -o /dev/null -w "%{http_code}" $BACKEND_URL/health) != "200" ]]; then
-            echo "❌ Backend health check failed"
+            echo "Backend health check failed"
             exit 1
           fi
-          echo "✅ Backend health check passed"
           
           # Frontend health
-          echo "Checking frontend health..."
           if [[ $(curl -s -o /dev/null -w "%{http_code}" $FRONTEND_URL) != "200" ]]; then
-            echo "❌ Frontend health check failed"
+            echo "Frontend health check failed"
             exit 1
           fi
-          echo "✅ Frontend health check passed"
           
           # Coinbase webhook health
-          echo "Checking Coinbase webhook health..."
-          WEBHOOK_STATUS=$(curl -s -o /dev/null -w "%{http_code}" $COINBASE_WEBHOOK_URL)
-          if [[ $WEBHOOK_STATUS != "200" && $WEBHOOK_STATUS != "405" ]]; then
-            echo "❌ Coinbase webhook health check failed (HTTP $WEBHOOK_STATUS)"
+          if [[ $(curl -s -o /dev/null -w "%{http_code}" $COINBASE_WEBHOOK_URL) != "200" ]]; then
+            echo "Coinbase webhook health check failed"
             exit 1
           fi
-          echo "✅ Coinbase webhook endpoint accessible"
 
       - name: Rollback on failure
         if: failure()
@@ -458,39 +446,18 @@ jobs:
     if: always()
 
     steps:
-      - name: Determine deployment environment
-        id: env
-        run: |
-          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-            echo "environment=Production" >> $GITHUB_OUTPUT
-            echo "url_suffix=production" >> $GITHUB_OUTPUT
-          else
-            echo "environment=Staging" >> $GITHUB_OUTPUT
-            echo "url_suffix=staging" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Enhanced Slack notification
+      - name: Notify Slack
         uses: 8398a7/action-slack@v3
         with:
-          status: ${{ (needs.deploy-staging.result == 'success' || needs.deploy-production.result == 'success') && 'success' || 'failure' }}
+          status: ${{ needs.deploy-staging.result == 'success' || needs.deploy-production.result == 'success' }}
           channel: '#deployments'
           webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
           text: |
-            🚀 **OmniAuthor Pro 2025 Deployment**
-            
-            **Environment:** ${{ steps.env.outputs.environment }}
-            **Version:** ${{ env.VERSION }}
-            **Status:** ${{ (needs.deploy-staging.result == 'success' || needs.deploy-production.result == 'success') && '✅ Success' || '❌ Failed' }}
-            **Branch:** ${{ github.ref_name }}
-            **Commit:** ${{ github.sha }}
-            
-            **🔗 URLs:**
-            • Backend: https://api-${{ steps.env.outputs.url_suffix }}.omniauthor.com
-            • Frontend: https://${{ steps.env.outputs.url_suffix }}.omniauthor.com
-            • Coinbase Webhook: https://api-${{ steps.env.outputs.url_suffix }}.omniauthor.com/api/coinbase/webhook
-            
-            **📊 Coverage & Security:**
-            • Code Coverage: Available in CodeCov
-            • Security Scan: Completed with Snyk & Trivy
-            • E2E Tests: Coinbase & Theme tests executed
+            🚀 OmniAuthor Pro 2025 Deployment
+            Environment: ${{ github.ref == 'refs/heads/main' && 'Production' || 'Staging' }}
+            Version: ${{ env.VERSION }}
+            Status: ${{ needs.deploy-staging.result == 'success' || needs.deploy-production.result == 'success' && 'Success' || 'Failed' }}
+            Backend: https://api-${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}.omniauthor.com
+            Frontend: https://${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}.omniauthor.com
+            Coinbase Webhook: https://api-${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}.omniauthor.com/api/coinbase/webhook
           fields: repo,commit,author,action,ref,workflow
