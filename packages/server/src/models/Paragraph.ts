@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { Paragraph } from '@omniauthor/shared';
+import { Paragraph as ParagraphType } from '@omniauthor/shared';
 
 
 const paragraphSchema = new mongoose.Schema({
@@ -67,4 +67,4 @@ paragraphSchema.index({ authorId: 1 });
 paragraphSchema.index({ source: 1 });
 
 
-export const Paragraph = mongoose.model<Paragraph & mongoose.Document>('Paragraph', paragraphSchema);
+export const Paragraph = mongoose.model<ParagraphType & mongoose.Document>('Paragraph', paragraphSchema);
