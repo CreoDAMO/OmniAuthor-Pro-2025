@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { User } from '@omniauthor/shared';
+import { User as UserType } from '@omniauthor/shared';
 
 
 const userSchema = new mongoose.Schema({
@@ -57,4 +57,4 @@ userSchema.index({ email: 1 });
 userSchema.index({ subscriptionTier: 1 });
 
 
-export const User = mongoose.model<User & mongoose.Document>('User', userSchema);
+export const User = mongoose.model<UserType & mongoose.Document>('User', userSchema);

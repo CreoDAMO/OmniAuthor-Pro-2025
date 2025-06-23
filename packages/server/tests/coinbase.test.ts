@@ -1,7 +1,4 @@
 import { createCoinbaseCharge } from '../src/services/coinbase';
-import { Client, Charge } from '@coinbase/coinbase-commerce-node';
-
-jest.mock('@coinbase/coinbase-commerce-node');
 
 describe('Coinbase Service', () => {
   beforeAll(() => {
@@ -10,9 +7,6 @@ describe('Coinbase Service', () => {
   });
 
   it('creates a charge successfully', async () => {
-    const mockCharge = { id: 'charge123', code: 'ABC123' };
-    (Charge.create as jest.Mock).mockResolvedValue(mockCharge);
-
     const input = {
       name: 'Test Charge',
       description: 'Test payment',
@@ -22,15 +16,30 @@ describe('Coinbase Service', () => {
     };
 
     const charge = await createCoinbaseCharge(input);
-    expect(charge).toEqual(mockCharge);
-    expect(Charge.create).toHaveBeenCalledWith({
-      name: input.name,
-      description: input.description,
-      local_price: { amount: '10.00', currency: 'USD' },
-      pricing_type: 'fixed_price',
-      metadata: { userId: input.userId },
-      redirect_url: 'http://localhost:3000/payment/success',
-      cancel_url: 'http://localhost:3000/payment/cancel',
-    });
+    
+    // Verify the charge was created with correct structure
+    expect(charge).toHaveProperty('id');
+    expect(charge).toHaveProperty('code');
+    expect(charge.name).toBe(input.name);
+    expect(charge.description).toBe(input.description);
+    expect(charge.local_price.amount).toBe('10.00');
+    expect(charge.local_price.currency).toBe('USD');
+    expect(charge.metadata.userId).toBe(input.userId);
+    expect(charge.pricing_type).toBe('fixed_price');
+    expect(charge.redirect_url).toBe('http://localhost:3000/payment/success');
+    expect(charge.cancel_url).toBe('http://localhost:3000/payment/cancel');
+  });
+
+  it('formats amount correctly', async () => {
+    const input = {
+      name: 'Test Charge 2',
+      description: 'Test payment 2',
+      amount: 15.5,
+      currency: 'USD',
+      userId: 'user456',
+    };
+
+    const charge = await createCoinbaseCharge(input);
+    expect(charge.local_price.amount).toBe('15.50');
   });
 });
