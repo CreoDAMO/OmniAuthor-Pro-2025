@@ -5270,6 +5270,131 @@ npm run dev:client    # Frontend (port 3000)
               └─────────────────────────────────────┘
 ```
 
+### Required `.env` Variables
+
+#### 1. `packages/server/.env`
+This file configures the backend services, including database connections, API keys, blockchain settings, and external service integrations.
+
+| **Variable Name**           | **Purpose**                                                                 | **Example/Default Value**                                    | **Required** |
+|-----------------------------|-----------------------------------------------------------------------------|-------------------------------------------------------------|--------------|
+| `MONGO_URI`                 | MongoDB connection string for the database (e.g., MongoDB Atlas)            | `mongodb://localhost:27017/omniauthor`                      | Yes          |
+| `REDIS_URL`                 | Redis connection string for caching and session management                  | `redis://localhost:6379`                                    | Yes          |
+| `JWT_SECRET`                | Secret key for signing JSON Web Tokens (JWT) for authentication             | Generated dynamically via `openssl rand -base64 32`         | Yes          |
+| `OPENAI_API_KEY`            | API key for OpenAI integration (used as a placeholder for AI services)      | `your_openai_api_key_here`                                  | Yes          |
+| `XAI_API_KEY`               | API key for xAI/Grok integration (for AI-driven features)                   | `your_xai_api_key_here`                                     | Yes          |
+| `POLYGON_RPC_URL`           | RPC URL for Polygon zkEVM blockchain network                                | `https://polygon-rpc.com`                                   | Yes          |
+| `BASE_RPC_URL`              | RPC URL for Base blockchain network                                         | `https://mainnet.base.org`                                  | Yes          |
+| `SOLANA_RPC_URL`            | RPC URL for Solana blockchain network                                       | `https://api.mainnet-beta.solana.com`                       | Yes          |
+| `PLATFORM_PRIVATE_KEY`      | Private key for the platform's Ethereum-compatible wallet (Polygon/Base)    | `your_private_key_here`                                     | Yes          |
+| `SOLANA_PRIVATE_KEY`        | Private key for the platform's Solana wallet                                | `your_solana_private_key_here`                              | Yes          |
+| `POLYGON_RIGHTS_CONTRACT`   | Address of the deployed rights management smart contract on Polygon         | `0x...`                                                     | Yes          |
+| `BASE_RIGHTS_CONTRACT`      | Address of the deployed rights management smart contract on Base            | `0x...`                                                     | Yes          |
+| `SOLANA_RIGHTS_PROGRAM`     | Program ID for the Solana rights management program                         | `...`                                                       | Yes          |
+| `STRIPE_SECRET_KEY`         | Stripe secret key for processing subscription and transaction payments      | `your_stripe_secret_key`                                    | Yes          |
+| `SENDGRID_API_KEY`          | SendGrid API key for sending transactional emails (e.g., welcome emails)    | `your_sendgrid_api_key`                                     | Yes          |
+| `CLIENT_URL`                | Comma-separated list of allowed client origins for CORS                    | `http://localhost:3000`                                     | Yes          |
+
+#### 2. `packages/client/.env`
+This file configures the frontend, specifying API endpoints and client-side service integrations.
+
+| **Variable Name**                 | **Purpose**                                                                 | **Example/Default Value**                                    | **Required** |
+|-----------------------------------|-----------------------------------------------------------------------------|-------------------------------------------------------------|--------------|
+| `VITE_GRAPHQL_URL`                | URL for the GraphQL API endpoint                                            | `http://localhost:4000/graphql`                             | Yes          |
+| `VITE_WS_URL`                     | WebSocket URL for real-time subscriptions                                   | `ws://localhost:4000/graphql`                               | Yes          |
+| `VITE_STRIPE_PUBLISHABLE_KEY`     | Stripe publishable key for client-side payment processing                   | `your_stripe_publishable_key`                               | Yes          |
+
+#### 3. Implied Variables for Deployment (from `scripts/deploy.sh`)
+The deployment script references additional environment variables required for CI/CD and production deployment. These are typically set in the CI/CD environment (e.g., GitHub Secrets) rather than in a local `.env` file, but they are critical for deployment.
+
+| **Variable Name**                 | **Purpose**                                                                 | **Example/Default Value**                                    | **Required** |
+|-----------------------------------|-----------------------------------------------------------------------------|-------------------------------------------------------------|--------------|
+| `RENDER_API_KEY`                  | API key for Render to deploy backend services                              | Not specified (must be set in CI/CD environment)             | Yes (for deployment) |
+| `VERCEL_TOKEN`                    | Token for Vercel to deploy frontend services                                | Not specified (must be set in CI/CD environment)             | Yes (for deployment) |
+| `MONGO_ATLAS_URI`                 | MongoDB Atlas URI for production/staging database                          | Not specified (must be set in CI/CD environment)             | Yes (for deployment) |
+| `REDIS_CLOUD_URL`                 | Redis Cloud URL for production/staging caching                             | Not specified (must be set in CI/CD environment)             | Yes (for deployment) |
+| `RENDER_PRODUCTION_SERVICE_ID`    | Service ID for Render production environment                                | Not specified (must be set in CI/CD environment)             | Yes (for production deployment) |
+| `RENDER_STAGING_SERVICE_ID`       | Service ID for Render staging environment                                   | Not specified (must be set in CI/CD environment)             | Yes (for staging deployment) |
+| `GRAFANA_API_KEY`                 | API key for updating Grafana dashboards during deployment                   | Not specified (must be set in CI/CD environment)             | Yes (for deployment) |
+| `SLACK_WEBHOOK_URL`               | Webhook URL for sending deployment notifications to Slack                   | Not specified (must be set in CI/CD environment)             | Optional     |
+
+### Notes
+1. **Security Considerations**:
+   - **Sensitive Keys**: Variables like `PLATFORM_PRIVATE_KEY`, `SOLANA_PRIVATE_KEY`, `JWT_SECRET`, `STRIPE_SECRET_KEY`, and `GRAFANA_API_KEY` are highly sensitive. For production, these should **not** be stored in `.env` files but instead managed using a secure secret management solution (e.g., AWS Secrets Manager, HashiCorp Vault, or GitHub Secrets for CI/CD).
+   - **Dynamic Generation**: The `JWT_SECRET` is generated dynamically in the setup script (`openssl rand -base64 32`). Ensure this is securely stored and not regenerated unnecessarily to avoid invalidating existing tokens.
+
+2. **Default Values**:
+   - The document provides placeholder values (e.g., `your_openai_api_key_here`, `0x...` for contract addresses). These must be replaced with actual values specific to your environment or service accounts.
+   - For blockchain-related variables (`POLYGON_RIGHTS_CONTRACT`, `BASE_RIGHTS_CONTRACT`, `SOLANA_RIGHTS_PROGRAM`), the actual contract addresses or program IDs must be obtained after deploying the smart contracts using Hardhat (for Polygon/Base) or Anchor (for Solana).
+
+3. **Deployment-Specific Variables**:
+   - Variables like `RENDER_API_KEY`, `VERCEL_TOKEN`, and service IDs are only required for CI/CD and deployment to Render and Vercel. These should be configured in the CI/CD environment (e.g., GitHub Actions secrets).
+   - The `MONGO_ATLAS_URI` and `REDIS_CLOUD_URL` are likely distinct from the local `MONGO_URI` and `REDIS_URL`, as they are used for cloud-hosted production/staging environments.
+
+4. **Optional Variables**:
+   - `SLACK_WEBHOOK_URL` is optional and only needed if you want to send deployment notifications to a Slack channel.
+
+5. **Additional Considerations**:
+   - The `CLIENT_URL` in `server/.env` supports multiple origins (comma-separated). Ensure all production and staging frontend URLs are included (e.g., `https://staging.omniauthor.com,https://omniauthor.com`).
+   - The `VITE_` prefix in `client/.env` is required for Vite-based projects to expose environment variables to the frontend.
+
+### Example `.env` Files
+
+#### `packages/server/.env`
+```env
+# Database
+MONGO_URI=mongodb://localhost:27017/omniauthor
+REDIS_URL=redis://localhost:6379
+
+# JWT
+JWT_SECRET=your_jwt_secret_here
+
+# API Keys
+OPENAI_API_KEY=your_openai_api_key_here
+XAI_API_KEY=your_xai_api_key_here
+
+# Blockchain
+POLYGON_RPC_URL=https://polygon-rpc.com
+BASE_RPC_URL=https://mainnet.base.org
+SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
+PLATFORM_PRIVATE_KEY=your_private_key_here
+SOLANA_PRIVATE_KEY=your_solana_private_key_here
+POLYGON_RIGHTS_CONTRACT=0x...
+BASE_RIGHTS_CONTRACT=0x...
+SOLANA_RIGHTS_PROGRAM=...
+
+# External Services
+STRIPE_SECRET_KEY=your_stripe_secret_key
+SENDGRID_API_KEY=your_sendgrid_api_key
+
+# URLs
+CLIENT_URL=http://localhost:3000
+```
+
+#### `packages/client/.env`
+```env
+VITE_GRAPHQL_URL=http://localhost:4000/graphql
+VITE_WS_URL=ws://localhost:4000/graphql
+VITE_STRIPE_PUBLISHABLE_KEY=your_stripe_publishable_key
+```
+
+#### CI/CD Environment Variables (e.g., GitHub Secrets)
+These should be set in the CI/CD platform (e.g., GitHub Actions):
+```plaintext
+RENDER_API_KEY=your_render_api_key
+VERCEL_TOKEN=your_vercel_token
+MONGO_ATLAS_URI=your_mongo_atlas_uri
+REDIS_CLOUD_URL=your_redis_cloud_url
+RENDER_PRODUCTION_SERVICE_ID=your_production_service_id
+RENDER_STAGING_SERVICE_ID=your_staging_service_id
+GRAFANA_API_KEY=your_grafana_api_key
+SLACK_WEBHOOK_URL=your_slack_webhook_url (optional)
+```
+
+### Recommendations
+- **Secure Secret Management**: Move sensitive keys (`PLATFORM_PRIVATE_KEY`, `SOLANA_PRIVATE_KEY`, etc.) to a secure vault solution and fetch them at runtime.
+- **Environment-Specific `.env` Files**: Create separate `.env.staging` and `.env.production` files for different environments, loaded dynamically by the deployment script.
+- **Validation in Setup Script**: Enhance `scripts/setup.sh` to validate the presence and format of critical environment variables before proceeding with setup.
+
 
 ## 💰 Revenue Model
 
