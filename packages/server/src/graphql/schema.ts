@@ -1,9 +1,7 @@
 import { gql } from 'apollo-server-express';
 
-
 export const typeDefs = gql`
   scalar Date
-
 
   type User {
     id: ID!
@@ -16,7 +14,6 @@ export const typeDefs = gql`
     usageStats: UsageStats!
   }
 
-
   type UsageStats {
     wordsWritten: Int!
     aiCallsToday: Int!
@@ -24,13 +21,11 @@ export const typeDefs = gql`
     collaborations: Int!
   }
 
-
   enum SubscriptionTier {
     FREE
     PRO
     ENTERPRISE
   }
-
 
   type Manuscript {
     id: ID!
@@ -46,7 +41,6 @@ export const typeDefs = gql`
     updatedAt: Date!
   }
 
-
   type Paragraph {
     id: ID!
     text: String!
@@ -56,12 +50,10 @@ export const typeDefs = gql`
     timestamp: Date!
   }
 
-
   enum ParagraphSource {
     HUMAN
     AI
   }
-
 
   type Collaborator {
     userId: String!
@@ -71,13 +63,11 @@ export const typeDefs = gql`
     royaltyShare: Float
   }
 
-
   enum CollaboratorRole {
     AUTHOR
     EDITOR
     BETA_READER
   }
-
 
   type AIAnalysis {
     originality: Float!
@@ -87,7 +77,6 @@ export const typeDefs = gql`
     suggestions: [AISuggestion!]!
   }
 
-
   type AISuggestion {
     id: ID!
     type: SuggestionType!
@@ -96,14 +85,12 @@ export const typeDefs = gql`
     reasoning: String!
   }
 
-
   enum SuggestionType {
     IMPROVE_STYLE
     EXPAND_SCENE
     CHARACTER_DEVELOPMENT
     CONTINUE_WRITING
   }
-
 
   type RoyaltyCalculation {
     platform: Platform!
@@ -115,13 +102,11 @@ export const typeDefs = gql`
     projections: RoyaltyProjections!
   }
 
-
   enum Platform {
     KDP
     NEURAL_BOOKS
     INGRAMSPARK
   }
-
 
   enum BookFormat {
     EBOOK
@@ -130,19 +115,16 @@ export const typeDefs = gql`
     AUDIOBOOK
   }
 
-
   type RoyaltyProjections {
     monthly: ProjectionRange!
     annual: ProjectionRange!
   }
-
 
   type ProjectionRange {
     conservative: Float!
     moderate: Float!
     optimistic: Float!
   }
-
 
   type BlockchainTransaction {
     id: ID!
@@ -154,13 +136,11 @@ export const typeDefs = gql`
     createdAt: Date!
   }
 
-
   enum BlockchainNetwork {
     POLYGON
     BASE
     SOLANA
   }
-
 
   enum TransactionType {
     ROYALTY_PAYOUT
@@ -168,13 +148,11 @@ export const typeDefs = gql`
     PLATFORM_FEE
   }
 
-
   enum TransactionStatus {
     PENDING
     CONFIRMED
     FAILED
   }
-
 
   type Subscription {
     id: ID!
@@ -183,8 +161,9 @@ export const typeDefs = gql`
     status: SubscriptionStatus!
     currentPeriodEnd: Date!
     cancelAtPeriodEnd: Boolean!
+    chargeId: String
+    paymentMethod: String
   }
-
 
   enum SubscriptionStatus {
     ACTIVE
@@ -193,6 +172,20 @@ export const typeDefs = gql`
     INCOMPLETE
   }
 
+  type Charge {
+    id: ID!
+    code: String!
+    name: String!
+    description: String!
+    local_price: Price!
+    redirect_url: String!
+    cancel_url: String!
+  }
+
+  type Price {
+    amount: String!
+    currency: String!
+  }
 
   type Query {
     me: User!
@@ -205,42 +198,43 @@ export const typeDefs = gql`
     subscription: Subscription
   }
 
-
   type Mutation {
     # Authentication
     register(input: RegisterInput!): AuthPayload!
     login(input: LoginInput!): AuthPayload!
     logout: Boolean!
-    
+
     # Manuscripts
     createManuscript(input: CreateManuscriptInput!): Manuscript!
     updateManuscript(id: ID!, input: UpdateManuscriptInput!): Manuscript!
     deleteManuscript(id: ID!): Boolean!
-    
+
     # Paragraphs
     addParagraph(input: AddParagraphInput!): Paragraph!
     updateParagraph(id: ID!, text: String!): Paragraph!
     deleteParagraph(id: ID!): Boolean!
-    
+
     # AI Features
     generateAISuggestion(input: AIGenerationInput!): AISuggestion!
     applyAISuggestion(suggestionId: ID!, manuscriptId: ID!): Paragraph!
-    
+
     # Collaboration
     inviteCollaborator(input: InviteCollaboratorInput!): Collaborator!
     updateCollaboratorRole(userId: ID!, manuscriptId: ID!, role: CollaboratorRole!): Collaborator!
     removeCollaborator(userId: ID!, manuscriptId: ID!): Boolean!
-    
+
     # Blockchain
     secureRights(manuscriptId: ID!, chain: BlockchainNetwork!): BlockchainTransaction!
     processRoyaltyPayout(input: RoyaltyPayoutInput!): BlockchainTransaction!
-    
+
     # Subscriptions
-    createSubscription(tier: SubscriptionTier!): Subscription!
+    createSubscription(input: CreateSubscriptionInput!): Subscription!
     cancelSubscription: Subscription!
     updatePaymentMethod(paymentMethodId: String!): Boolean!
-  }
 
+    # Coinbase
+    createCoinbaseCharge(input: CreateChargeInput!): Charge!
+  }
 
   type Subscription {
     paragraphAdded(manuscriptId: ID!): Paragraph!
@@ -249,14 +243,12 @@ export const typeDefs = gql`
     aiAnalysisComplete(manuscriptId: ID!): AIAnalysis!
   }
 
-
   type CollaboratorActivity {
     userId: String!
     action: String!
     timestamp: Date!
     manuscriptId: String!
   }
-
 
   # Input Types
   input RegisterInput {
@@ -265,12 +257,10 @@ export const typeDefs = gql`
     name: String!
   }
 
-
   input LoginInput {
     email: String!
     password: String!
   }
-
 
   input CreateManuscriptInput {
     title: String!
@@ -278,13 +268,11 @@ export const typeDefs = gql`
     description: String
   }
 
-
   input UpdateManuscriptInput {
     title: String
     genre: String
     description: String
   }
-
 
   input AddParagraphInput {
     manuscriptId: ID!
@@ -293,7 +281,6 @@ export const typeDefs = gql`
     aiPrompt: String
   }
 
-
   input AIGenerationInput {
     manuscriptId: ID!
     context: String!
@@ -301,14 +288,12 @@ export const typeDefs = gql`
     previousParagraphs: [String!]
   }
 
-
   input InviteCollaboratorInput {
     manuscriptId: ID!
     email: String!
     role: CollaboratorRole!
     royaltyShare: Float
   }
-
 
   input RoyaltyInput {
     platform: Platform!
@@ -318,7 +303,6 @@ export const typeDefs = gql`
     genre: String
   }
 
-
   input RoyaltyPayoutInput {
     manuscriptId: ID!
     amount: Float!
@@ -326,6 +310,17 @@ export const typeDefs = gql`
     recipientAddress: String!
   }
 
+  input CreateSubscriptionInput {
+    tier: SubscriptionTier!
+    newCoinbaseCharge: Boolean
+  }
+
+  input CreateChargeInput {
+    name: String!
+    description: String!
+    amount: Float!
+    currency: String!
+  }
 
   type AuthPayload {
     token: String!
