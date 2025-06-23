@@ -81,11 +81,11 @@ const AIPanel: React.FC<AIProps> = ({ manuscriptId, onSuggestionApply, currentTe
             <button
               key={mode}
               onClick={() => setSelectedMode(mode as any)}
-              className={\`px-3 py-1 rounded \${
+              className={`px-3 py-1 rounded ${
                 selectedMode === mode
                   ? 'bg-indigo-600 text-white'
                   : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-              }\`}
+              }`}
             >
               {mode.charAt(0).toUpperCase() + mode.slice(1)}
             </button>
@@ -119,7 +119,7 @@ const AIPanel: React.FC<AIProps> = ({ manuscriptId, onSuggestionApply, currentTe
                     <div className="w-32 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-indigo-600"
-                        style={{ width: \`\${analysis[metric as keyof AIAnalysis]}%\` }}
+                        style={{ width: `${analysis[metric as keyof AIAnalysis]}%` }}
                       />
                     </div>
                   </div>

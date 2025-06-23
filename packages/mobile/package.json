@@ -5,7 +5,7 @@
     "dev": "echo 'Mobile dev'",
     "build": "echo 'Mobile build'",
     "test": "jest",
-    "lint": "eslint src/**/*.{ts,tsx} --fix"
+    "lint": "echo 'No TypeScript files to lint in mobile package'"
   },
   "devDependencies": {
     "@types/jest": "^29.5.0",

@@ -72,7 +72,7 @@ const DashboardPage: React.FC = () => {
             whileHover={{ scale: 1.02 }}
             className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6"
           >
-            <Link to={\`/editor/\${manuscript.id}\`} className="block">
+            <Link to={`/editor/${manuscript.id}`} className="block">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
                 {manuscript.title}
               </h2>
@@ -100,7 +100,7 @@ const DashboardPage: React.FC = () => {
                 </div>
                 <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-indigo-200 dark:bg-gray-700">
                   <div
-                    style={{ width: \`\${manuscript.progress}%\` }}
+                    style={{ width: `${manuscript.progress}%` }}
                     className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-indigo-600"
                   />
                 </div>
