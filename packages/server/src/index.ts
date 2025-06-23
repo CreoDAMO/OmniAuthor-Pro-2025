@@ -5,7 +5,16 @@ import cors from 'cors';
 import { typeDefs, resolvers } from './graphql/schema';
 
 const app = express();
-const port = process.env.PORT || 4000;
+const port = parseInt(process.env.PORT || '4000', 10);
+
+// Initialize basic middleware and routes
+app.use(cors());
+app.use(express.json());
+
+// Health check endpoint (always available)
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
 
 async function startServer() {
   const server = new ApolloServer({
@@ -14,23 +23,27 @@ async function startServer() {
   });
 
   await server.start();
-
-  app.use(cors());
-  app.use(express.json());
   app.use('/graphql', expressMiddleware(server));
 
-  app.get('/health', (req, res) => {
-    res.json({ status: 'ok' });
-  });
+  // Only start listening if not in test environment
+  if (process.env.NODE_ENV !== 'test') {
+    app.listen(port, '0.0.0.0', () => {
+      console.log(`🚀 Server running at http://0.0.0.0:${port}`);
+      console.log(`📈 Health check at http://0.0.0.0:${port}/health`);
+      console.log(`🎯 GraphQL endpoint at http://0.0.0.0:${port}/graphql`);
+    });
+  }
 
-  app.listen(port, '0.0.0.0', () => {
-    console.log(`🚀 Server running at http://0.0.0.0:${port}`);
-    console.log(`📈 Health check at http://0.0.0.0:${port}/health`);
-    console.log(`🎯 GraphQL endpoint at http://0.0.0.0:${port}/graphql`);
-  });
+  return app;
 }
 
-startServer().catch((error) => {
-  console.error('Failed to start server:', error);
-  process.exit(1);
-});
+// Export app for testing
+export { app };
+
+// Start server if not in test environment
+if (process.env.NODE_ENV !== 'test') {
+  startServer().catch((error) => {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  });
+}

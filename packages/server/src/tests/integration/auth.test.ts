@@ -1,4 +1,5 @@
 import request from 'supertest';
+import bcrypt from 'bcrypt';
 import { app } from '../../index';
 import { User } from '../../models/User';
 import { connectTestDB, disconnectTestDB, clearTestDB } from '../utils/testDb';
