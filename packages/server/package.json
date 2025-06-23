@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@apollo/server": "^4.9.0",
+    "@coinbase/coinbase-commerce-node": "^2.0.0", // Added for Coinbase Commerce
     "@graphql-tools/schema": "^10.0.0",
     "@solana/web3.js": "^1.78.0",
     "apollo-server-express": "^3.12.0",
