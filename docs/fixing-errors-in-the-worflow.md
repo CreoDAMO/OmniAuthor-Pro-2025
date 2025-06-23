@@ -624,5 +624,3 @@ If the error reoccurs after committing `package-lock.json`, consider these troub
 - **Vercel Secrets**: The lock file issue doesn’t affect Vercel secrets (`VITE_GRAPHQL_URL`, `COINBASE_COMMERCE_API_KEY`, etc.), which are correctly configured in the workflow.
 - **Coinbase Commerce**: No changes were needed for Coinbase Commerce integration, as the error is unrelated to environment variables.
 - **Security Policy**: The fix aligns with the `SECURITY.md` by ensuring reproducible builds, which is critical for dependency security audits.
-
-This updated workflow should resolve the missing lock file error and ensure robust CI/CD for OmniAuthor Pro 2025. Let me know if you need help generating `package-lock.json`, switching to Yarn, or debugging further issues! If you share your `package.json` or repository structure, I can provide more tailored guidance.
