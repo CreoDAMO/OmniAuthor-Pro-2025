@@ -12,9 +12,7 @@ import rateLimit from 'express-rate-limit';
 import compression from 'compression';
 import mongoose from 'mongoose';
 import { register } from 'prom-client';
-import dotenv from 'dotenv';
-
-
+import coinbaseWebhookRouter from './routes/coinbaseWebhook'; // Added for Coinbase
 import { typeDefs } from './graphql/schema';
 import { resolvers } from './graphql/resolvers';
 import { authMiddleware } from './middleware/auth';
@@ -23,13 +21,8 @@ import { errorHandler } from './middleware/errorHandler';
 import { logger } from './utils/logger';
 import { redisClient } from './config/redis';
 
-
-dotenv.config();
-
-
 const app = express();
 const httpServer = createServer(app);
-
 
 // Security middleware
 app.use(helmet({
@@ -43,19 +36,16 @@ app.use(helmet({
   },
 }));
 
-
 app.use(cors({
   origin: process.env.CLIENT_URLs?.split(',') || ['http://localhost:3000'],
   credentials: true,
 }));
 
-
 app.use(compression());
-
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 15 * 60 * 1000,
   max: process.env.NODE_ENV === 'production' ? 100 : 1000,
   message: 'Too many requests from this IP',
   standardHeaders: true,
@@ -63,9 +53,8 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-
 app.use(express.json({ limit: '50mb' }));
-
+app.use('/api', coinbaseWebhookRouter); // Mount Coinbase webhook
 
 // Health check
 app.get('/health', (req, res) => {
@@ -76,17 +65,14 @@ app.get('/health', (req, res) => {
   });
 });
 
-
 // Metrics endpoint for Prometheus
 app.get('/metrics', async (req, res) => {
   res.set('Content-Type', register.contentType);
   res.end(await register.metrics());
 });
 
-
 // GraphQL Schema
 const schema = makeExecutableSchema({ typeDefs, resolvers });
-
 
 // WebSocket Server for subscriptions
 const wsServer = new WebSocketServer({
@@ -94,15 +80,12 @@ const wsServer = new WebSocketServer({
   path: '/graphql',
 });
 
-
 const serverCleanup = useServer({
   schema,
   context: async (ctx) => {
-    // Add subscription context
     return { user: ctx.extra.user };
   },
 }, wsServer);
-
 
 // Apollo Server
 const server = new ApolloServer({
@@ -121,27 +104,19 @@ const server = new ApolloServer({
   ],
 });
 
-
 async function startServer() {
   try {
-    // Connect to MongoDB
     await mongoose.connect(process.env.MONGO_URI!, {
       retryWrites: true,
       w: 'majority',
     });
     logger.info('Connected to MongoDB');
 
-
-    // Connect to Redis
     await redisClient.connect();
     logger.info('Connected to Redis');
 
-
-    // Start Apollo Server
     await server.start();
 
-
-    // Apply GraphQL middleware
     app.use('/graphql', 
       authMiddleware,
       subscriptionMiddleware,
@@ -153,15 +128,13 @@ async function startServer() {
       })
     );
 
-
-    // Error handling
     app.use(errorHandler);
-
 
     const PORT = process.env.PORT || 4000;
     httpServer.listen(PORT, () => {
       logger.info(`🚀 Server ready at http://localhost:${PORT}/graphql`);
       logger.info(`🔗 WebSocket ready at ws://localhost:${PORT}/graphql`);
+      logger.info(`🌐 Coinbase webhook ready at http://localhost:${PORT}/api/coinbase/webhook`);
     });
   } catch (error) {
     logger.error('Failed to start server:', error);
@@ -169,8 +142,6 @@ async function startServer() {
   }
 }
 
-
-// Graceful shutdown
 process.on('SIGTERM', async () => {
   logger.info('SIGTERM received, shutting down gracefully');
   await server.stop();
@@ -178,6 +149,5 @@ process.on('SIGTERM', async () => {
   await redisClient.quit();
   process.exit(0);
 });
-
 
 startServer();
