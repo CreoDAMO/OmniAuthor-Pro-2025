@@ -22,7 +22,7 @@ import EditorToolbar from './EditorToolbar';
 import AIPanel from '../AI/AIPanel';
 import CollaboratorIndicators from '../Collaboration/CollaboratorIndicators';
 import AutoSaveIndicator from './AutoSaveIndicator';
-import { SUBSCRIPTION_PLANS } from '@omniauthor/shared';
+import { SUBSCRIPTION_PLANS, Paragraph } from '@omniauthor/shared';
 
 const lexicalConfig = {
   namespace: 'OmniAuthorEditor',
@@ -50,7 +50,7 @@ const MainEditor: React.FC<MainEditorProps> = ({ manuscriptId }) => {
     refetchQueries: [{ query: GET_PARAGRAPHS, variables: { manuscriptId } }],
   });
 
-  const [updateManuscript] = useMutation(UPDATE_MANUSCRIPT);
+  const [_updateManuscript] = useMutation(UPDATE_MANUSCRIPT);
 
   const [createCoinbaseCharge] = useMutation(CREATE_COINBASE_CHARGE, {
     onCompleted: (data) => {
@@ -67,7 +67,7 @@ const MainEditor: React.FC<MainEditorProps> = ({ manuscriptId }) => {
     onData: ({ data }) => {
       if (data.data?.paragraphAdded && data.data.paragraphAdded.authorId !== user?.id) {
         const newParagraph = data.data.paragraphAdded;
-        setEditorState((prev) => {
+        setEditorState((_prev) => {
           const editor = lexicalConfig.editor;
           editor.update(() => {
             const root = $getRoot();
@@ -90,14 +90,14 @@ const MainEditor: React.FC<MainEditorProps> = ({ manuscriptId }) => {
       editor.update(() => {
         const root = $getRoot();
         root.clear();
-        paragraphsData.paragraphs.forEach((p: any) => {
+        paragraphsData.paragraphs.forEach((p: Paragraph) => {
           const paragraph = $createParagraphNode();
           paragraph.append($createTextNode(p.text));
           root.append(paragraph);
         });
       });
       setEditorState(JSON.stringify(editor.getEditorState()));
-      setWordCount(paragraphsData.paragraphs.reduce((acc: number, p: any) => acc + p.text.split(' ').length, 0));
+      setWordCount(paragraphsData.paragraphs.reduce((acc: number, p: Paragraph) => acc + p.text.split(' ').length, 0));
     }
   }, [paragraphsData]);
 
@@ -121,10 +121,10 @@ const MainEditor: React.FC<MainEditorProps> = ({ manuscriptId }) => {
         toast.error('Auto-save failed');
       }
     }, 3000),
-    [manuscriptId, addParagraph]
+    [manuscriptId, addParagraph, setLastSaved, setIsTyping]
   );
 
-  const onEditorChange = (editorState: any) => {
+  const onEditorChange = (editorState: unknown) => {
     setEditorState(JSON.stringify(editorState));
     editorState.read(() => {
       const text = $getRoot().getTextContent();
