@@ -5,7 +5,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test": "jest --coverage --coverageThreshold='{"global": {"branches": 80, "functions": 80, "lines": 80, "statements": 80}}'",
+    "test": "jest --coverage --coverageThreshold='{\"global\": {\"branches\": 80, \"functions\": 80, \"lines\": 80, \"statements\": 80}}'",
     "test:e2e": "cypress run",
     "lint": "eslint src/**/*.{ts,tsx} --fix",
     "deploy": "vite build && vercel --prod"
