@@ -171,7 +171,7 @@ describe('Writing Flow E2E Tests', () => {
     cy.get('[data-testid="upgrade-prompt"]').should('be.visible');
   });
 
-  it('processes Coinbase subscription payment', () => {
+  it('processes Coinbase subscription payment', { tags: '@coinbase' }, () => {
     cy.visit('/subscription');
     cy.get('[data-testid="subscription-tier-select"]').select('PRO');
     cy.get('[data-testid="pay-with-coinbase-btn"]').click();
@@ -182,7 +182,7 @@ describe('Writing Flow E2E Tests', () => {
     cy.get('[data-testid="success-toast"]').should('be.visible').should('contain', 'Payment initiated');
   });
 
-  it('processes Coinbase one-time payment', () => {
+  it('processes Coinbase one-time payment', { tags: '@coinbase' }, () => {
     cy.visit('/payment');
     cy.get('[data-testid="pay-with-coinbase-btn"]').click();
     cy.get('[data-testid="payment-form"]').should('be.visible');
@@ -196,7 +196,7 @@ describe('Writing Flow E2E Tests', () => {
     cy.get('[data-testid="success-toast"]').should('be.visible').should('contain', 'Payment initiated');
   });
 
-  it('handles Coinbase payment failure', () => {
+  it('handles Coinbase payment failure', { tags: '@coinbase' }, () => {
     cy.intercept('POST', '/graphql', (req) => {
       if (req.body.operationName === 'CreateCoinbaseCharge') {
         req.reply({
@@ -245,5 +245,15 @@ describe('Writing Flow E2E Tests', () => {
     cy.get('[data-testid="retry-button"]').click();
     cy.wait('@retryRequest');
     cy.get('[data-testid="network-error"]').should('not.exist');
+  });
+
+  it('toggles theme successfully', { tags: '@theme' }, () => {
+    cy.visit('/dashboard');
+    cy.get('[data-testid="theme-toggle-btn"]').should('be.visible');
+    cy.get('body').should('have.class', 'light').or('have.class', 'dark');
+    cy.get('[data-testid="theme-toggle-btn"]').click();
+    cy.get('body').should('have.class', 'dark').or('have.class', 'light');
+    cy.get('[data-testid="theme-toggle-btn"]').click();
+    cy.get('body').should('have.class', 'light').or('have.class', 'dark');
   });
 });
