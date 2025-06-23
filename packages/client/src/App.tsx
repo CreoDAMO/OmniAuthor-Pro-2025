@@ -26,7 +26,7 @@ import DashboardPage from './pages/DashboardPage';
 import SubscriptionPage from './pages/SubscriptionPage';
 import CollaborationPage from './pages/CollaborationPage';
 
-import { SUBSCRIPTION_PLANS } from '@omniauthor/shared';
+
 import { logger } from './utils/logger'; // Added for client-side logging
 
 import './styles/globals.css';

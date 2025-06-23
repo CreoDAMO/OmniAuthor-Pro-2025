@@ -7,14 +7,11 @@ import { motion } from 'framer-motion';
 import { GET_MANUSCRIPT } from '../graphql/queries';
 import MainEditor from '../components/Editor/MainEditor';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
-import { useAuth } from '../contexts/AuthContext';
-import { useSubscription } from '../contexts/SubscriptionContext';
+
 
 const EditorPage: React.FC = () => {
   const { manuscriptId } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const { subscription } = useSubscription();
   const [isLoading, setIsLoading] = useState(true);
 
   const { data, loading, error } = useQuery(GET_MANUSCRIPT, {

@@ -25,7 +25,7 @@ interface AIProps {
 }
 
 const AIPanel: React.FC<AIProps> = ({ manuscriptId, onSuggestionApply, currentText = '' }) => {
-  const { subscription, checkAIUsage } = useSubscription();
+  const { checkAIUsage } = useSubscription();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<AIAnalysis | null>(null);
   const [selectedMode, setSelectedMode] = useState<'improve' | 'continue' | 'expand'>('improve');
@@ -80,7 +80,7 @@ const AIPanel: React.FC<AIProps> = ({ manuscriptId, onSuggestionApply, currentTe
           {['improve', 'continue', 'expand'].map((mode) => (
             <button
               key={mode}
-              onClick={() => setSelectedMode(mode as any)}
+              onClick={() => setSelectedMode(mode as 'improve' | 'continue' | 'expand')}
               className={`px-3 py-1 rounded ${
                 selectedMode === mode
                   ? 'bg-indigo-600 text-white'
