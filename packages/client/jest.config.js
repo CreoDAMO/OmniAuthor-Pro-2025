@@ -3,41 +3,25 @@ module.exports = {
   testEnvironment: 'jsdom',
   roots: ['<rootDir>/src'],
   testMatch: [
-    '<rootDir>/src/**/__tests__/**/*.{ts,tsx}',
-    '<rootDir>/src/**/*.(test|spec).{ts,tsx}'
+    '**/__tests__/**/*.{ts,tsx}',
+    '**/?(*.)+(spec|test).{ts,tsx}'
   ],
   transform: {
     '^.+\.(ts|tsx)$': 'ts-jest',
   },
-  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
-  setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts'],
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',
     '!src/**/*.d.ts',
-    '!src/main.tsx',
-    '!src/vite-env.d.ts',
-    '!src/App.tsx',
-    '!src/components/**',
-    '!src/contexts/**',
-    '!src/graphql/**',
-    '!src/hooks/**',
-    '!src/pages/**',
-    '!src/services/**',
-    '!src/utils/**',
-    '!src/config/**'
+    '!src/tests/**',
+    '!src/**/*.test.{ts,tsx}',
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
+  setupFilesAfterEnv: ['<rootDir>/src/tests/setup.ts'],
+  testTimeout: 30000,
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   moduleNameMapper: {
     '\.(css|less|scss|sass)$': 'identity-obj-proxy',
-  },
-  globals: {
-    'ts-jest': {
-      tsconfig: {
-        jsx: 'react-jsx',
-        esModuleInterop: true,
-        allowSyntheticDefaultImports: true,
-      },
-    },
+    '\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$': 'jest-transform-stub',
   },
 };

@@ -1,5 +1,8 @@
 import request from 'supertest';
-import { app } from '../../server';
+import bcrypt from 'bcrypt';
+import { app } from '../../index';
+import { User } from '../../models/User';
+import { connectTestDB, disconnectTestDB, clearTestDB } from '../utils/testDb';
 
 describe('Server Integration Tests', () => {
   it('should respond to health check', async () => {

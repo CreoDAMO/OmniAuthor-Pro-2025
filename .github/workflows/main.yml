@@ -41,7 +41,6 @@ jobs:
             exit 1
           fi
           echo "✅ package-lock.json found"
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -188,7 +187,6 @@ jobs:
           key: cypress-${{ runner.os }}-${{ hashFiles('packages/client/package-lock.json') }}
           restore-keys: |
             cypress-${{ runner.os }}-
-
       - name: Build frontend
         working-directory: packages/client
         env:
@@ -217,7 +215,6 @@ jobs:
       - name: Wait for servers
         run: |
           npx wait-on http://localhost:3000 http://localhost:4000/health --timeout 60000
-
       - name: Run Cypress E2E tests
         working-directory: packages/client
         run: npm run test:e2e -- --env grepTags=@coinbase,@theme
@@ -267,7 +264,6 @@ jobs:
             type=ref,event=branch
             type=ref,event=pr
             type=sha,prefix={{branch}}-
-
       - name: Build and push backend image
         uses: docker/build-push-action@v5
         with:
@@ -309,7 +305,6 @@ jobs:
             https://api.render.com/v1/services/${{ secrets.RENDER_STAGING_SERVICE_ID }}/deploys)
           echo "Render deploy response: $RESPONSE"
           echo "render_deploy_response=$RESPONSE" >> $GITHUB_OUTPUT
-
       - name: Deploy frontend to Vercel
         uses: amondnet/vercel-action@v25
         id: vercel-deploy
@@ -325,7 +320,6 @@ jobs:
             VITE_COINBASE_URL=${{ secrets.VITE_COINBASE_URL }}
             VITE_COINBASE_REDIRECT_URL=${{ secrets.VITE_COINBASE_REDIRECT_URL }}
             VITE_COINBASE_CANCEL_URL=${{ secrets.VITE_COINBASE_CANCEL_URL }}
-
       - name: Enhanced health checks
         run: |
           BACKEND_URL=https://api-staging.omniauthor.com
@@ -356,7 +350,6 @@ jobs:
             exit 1
           fi
           echo "✅ Coinbase webhook endpoint accessible"
-
       - name: Rollback on failure
         if: failure()
         run: |
@@ -365,7 +358,6 @@ jobs:
             -H "Content-Type: application/json" \
             -d '{"serviceId":"${{ secrets.RENDER_STAGING_SERVICE_ID }}","rollback":true}' \
             https://api.render.com/v1/services/${{ secrets.RENDER_STAGING_SERVICE_ID }}/deploys
-
   deploy-production:
     name: Deploy to Production
     runs-on: ubuntu-latest
@@ -387,7 +379,6 @@ jobs:
             https://api.render.com/v1/services/${{ secrets.RENDER_PRODUCTION_NAME }}/deploys)
           echo "Render deploy response: $RESPONSE"
           echo "render_deploy_response=$RESPONSE" >> $GITHUB_OUTPUT
-
       - name: Deploy frontend to Vercel
         uses: amondnet/vercel-action@v25
         id: vercel-deploy
@@ -404,7 +395,6 @@ jobs:
             VITE_COINBASE_URL=${{ secrets.VITE_COINBASE_PROD_URL }}
             VITE_COINBASE_REDIRECT_URL=https://production.omniauthor.com/payment/success
             VITE_COINBASE_CANCEL_URL=https://production.omniauthor.com/payment/cancel
-
       - name: Enhanced health checks
         run: |
           BACKEND_URL=https://api-production.omniauthor.com
@@ -435,7 +425,6 @@ jobs:
             exit 1
           fi
           echo "✅ Coinbase webhook endpoint accessible"
-
       - name: Rollback on failure
         if: failure()
         run: |
@@ -444,13 +433,11 @@ jobs:
             -H "Content-Type: application/json" \
             -d '{"serviceId":"${{ secrets.RENDER_PRODUCTION_NAME }}","rollback":true}' \
             https://api.render.com/v1/services/${{ secrets.RENDER_PRODUCTION_NAME }}/deploys
-
       - name: Update mobile app stores
         run: |
           curl -X POST \
             -H "Authorization: Bearer ${{ secrets.MOBILE_DEPLOY_TOKEN }}" \
             ${{ secrets.MOBILE_WEBHOOK_URL }}
-
   notify:
     name: Notify Team
     runs-on: ubuntu-latest
@@ -468,7 +455,6 @@ jobs:
             echo "environment=Staging" >> $GITHUB_OUTPUT
             echo "url_suffix=staging" >> $GITHUB_OUTPUT
           fi
-
       - name: Enhanced Slack notification
         uses: 8398a7/action-slack@v3
         with:

@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { Manuscript } from '@omniauthor/shared';
+import { Manuscript as ManuscriptType } from '@omniauthor/shared';
 
 
 const collaboratorSchema = new mongoose.Schema({
@@ -104,4 +104,4 @@ manuscriptSchema.virtual('calculatedProgress').get(function() {
 });
 
 
-export const Manuscript = mongoose.model<Manuscript & mongoose.Document>('Manuscript', manuscriptSchema);
+export const Manuscript = mongoose.model<ManuscriptType & mongoose.Document>('Manuscript', manuscriptSchema);
