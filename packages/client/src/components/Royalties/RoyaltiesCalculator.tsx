@@ -8,6 +8,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recha
 
 import { CALCULATE_ROYALTIES, CREATE_COINBASE_CHARGE } from '../../graphql/queries';
 import { PROCESS_ROYALTY_PAYOUT } from '../../graphql/mutations';
+import { BLOCKCHAIN_CONFIG } from '@omniauthor/shared/src/constants';
 
 import PayoutModal from './PayoutModal';
 
@@ -84,7 +85,7 @@ const RoyaltiesCalculator: React.FC = () => {
     }
   }, [formData, calculateRoyalties]);
 
-  const handleInputChange = (field: keyof RoyaltyFormData, value: any) => {
+  const handleInputChange = (field: keyof RoyaltyFormData, value: string | number) => {
     setFormData((prev) => ({
       ...prev,
       [field]: field === 'price' ? parseFloat(value) || 0 : field === 'pageCount' ? parseInt(value) || 0 : value,
@@ -441,7 +442,7 @@ const RoyaltiesCalculator: React.FC = () => {
             </Transition.Child>
 
             <span className="inline-block h-screen align-middle" aria-hidden="true">
-              ​
+              &#8203;
             </span>
 
             <Transition.Child

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useMutation, useSubscription, useQuery } from '@apollo/client';
 import { toast } from 'react-hot-toast';
 import { debounce } from 'lodash';
@@ -14,7 +14,7 @@ import {
 } from '@lexical/react';
 import { $getRoot, $createParagraphNode, $createTextNode } from 'lexical';
 
-import { ADD_PARAGRAPH, UPDATE_MANUSCRIPT } from '../../graphql/mutations';
+import { ADD_PARAGRAPH } from '../../graphql/mutations';
 import { PARAGRAPH_ADDED_SUBSCRIPTION } from '../../graphql/subscriptions';
 import { GET_PARAGRAPHS, CREATE_COINBASE_CHARGE } from '../../graphql/queries';
 import { useAuth } from '../../contexts/AuthContext';
@@ -22,7 +22,7 @@ import EditorToolbar from './EditorToolbar';
 import AIPanel from '../AI/AIPanel';
 import CollaboratorIndicators from '../Collaboration/CollaboratorIndicators';
 import AutoSaveIndicator from './AutoSaveIndicator';
-import { SUBSCRIPTION_PLANS } from '@omniauthor/shared';
+import { SUBSCRIPTION_PLANS, Paragraph } from '@omniauthor/shared';
 
 const lexicalConfig = {
   namespace: 'OmniAuthorEditor',
@@ -50,7 +50,7 @@ const MainEditor: React.FC<MainEditorProps> = ({ manuscriptId }) => {
     refetchQueries: [{ query: GET_PARAGRAPHS, variables: { manuscriptId } }],
   });
 
-  const [updateManuscript] = useMutation(UPDATE_MANUSCRIPT);
+
 
   const [createCoinbaseCharge] = useMutation(CREATE_COINBASE_CHARGE, {
     onCompleted: (data) => {
@@ -67,7 +67,7 @@ const MainEditor: React.FC<MainEditorProps> = ({ manuscriptId }) => {
     onData: ({ data }) => {
       if (data.data?.paragraphAdded && data.data.paragraphAdded.authorId !== user?.id) {
         const newParagraph = data.data.paragraphAdded;
-        setEditorState((prev) => {
+        setEditorState((_prev) => {
           const editor = lexicalConfig.editor;
           editor.update(() => {
             const root = $getRoot();
@@ -90,41 +90,43 @@ const MainEditor: React.FC<MainEditorProps> = ({ manuscriptId }) => {
       editor.update(() => {
         const root = $getRoot();
         root.clear();
-        paragraphsData.paragraphs.forEach((p: any) => {
+        paragraphsData.paragraphs.forEach((p: Paragraph) => {
           const paragraph = $createParagraphNode();
           paragraph.append($createTextNode(p.text));
           root.append(paragraph);
         });
       });
       setEditorState(JSON.stringify(editor.getEditorState()));
-      setWordCount(paragraphsData.paragraphs.reduce((acc: number, p: any) => acc + p.text.split(' ').length, 0));
+      setWordCount(paragraphsData.paragraphs.reduce((acc: number, p: Paragraph) => acc + p.text.split(' ').length, 0));
     }
   }, [paragraphsData]);
 
-  const debouncedSave = useCallback(
-    debounce(async (text: string) => {
-      if (!text.trim()) return;
-      try {
-        await addParagraph({
-          variables: {
-            input: {
-              manuscriptId,
-              text: text.slice(-1000),
-              source: 'HUMAN',
-            },
+  const saveFunction = useCallback(async (text: string) => {
+    if (!text.trim()) return;
+    try {
+      await addParagraph({
+        variables: {
+          input: {
+            manuscriptId,
+            text: text.slice(-1000),
+            source: 'HUMAN',
           },
-        });
-        setLastSaved(new Date());
-        setIsTyping(false);
-        toast.success('Content saved');
-      } catch (error) {
-        toast.error('Auto-save failed');
-      }
-    }, 3000),
-    [manuscriptId, addParagraph]
+        },
+      });
+      setLastSaved(new Date());
+      setIsTyping(false);
+      toast.success('Content saved');
+    } catch (error) {
+      toast.error('Auto-save failed');
+    }
+  }, [manuscriptId, addParagraph]);
+
+  const debouncedSave = useMemo(
+    () => debounce(saveFunction, 3000),
+    [saveFunction]
   );
 
-  const onEditorChange = (editorState: any) => {
+  const onEditorChange = (editorState: unknown) => {
     setEditorState(JSON.stringify(editorState));
     editorState.read(() => {
       const text = $getRoot().getTextContent();
