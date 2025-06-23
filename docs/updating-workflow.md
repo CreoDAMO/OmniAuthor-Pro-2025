@@ -554,5 +554,3 @@ jobs:
 - **Environment-Specific Secrets**: If you need different values for staging vs. production (e.g., different `COINBASE_COMMERCE_API_KEY` for testnet vs. mainnet), use environment-specific secrets in Vercel and Render.
 - **Documentation**: Update your `README.md` to document that all environment variables are managed in Vercel and Render, with instructions for adding new variables.
 - **Webhook Testing**: For Coinbase Commerce, set up a staging webhook endpoint in Vercel or Render and test with `ngrok` locally to ensure `COINBASE_COMMERCE_WEBHOOK_SECRET` works.
-
-This updated workflow eliminates reliance on local `.env` files by using Vercel environment secrets and GitHub Secrets, with full support for Coinbase Commerce integration. Let me know if you need help with specific integrations, Docker configuration, or further refinements!
