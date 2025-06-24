@@ -1,4 +1,4 @@
-import { Client, Charge, Webhook } from '@coinbase/coinbase-commerce-node';
+import { Client, Charge, Webhook } from 'coinbase-commerce-node';
 import { logger } from '../utils/logger';
 
 // Initialize Coinbase Commerce Client
