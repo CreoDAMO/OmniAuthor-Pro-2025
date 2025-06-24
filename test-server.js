@@ -47,6 +47,11 @@ app.post('/api/payments/create-charge', (req, res) => {
 app.post('/api/coinbase/webhook', express.raw({ type: 'application/json' }), (req, res) => {
   const signature = req.headers['x-cc-webhook-signature'];
   
+  if (typeof req.body !== 'string' && !Buffer.isBuffer(req.body)) {
+    console.error('Invalid body type received in Coinbase webhook:', typeof req.body);
+    res.status(400).send('Invalid request body');
+    return;
+  }
   console.log('Received Coinbase webhook:', {
     signature: signature ? 'present' : 'missing',
     bodyLength: req.body.length
