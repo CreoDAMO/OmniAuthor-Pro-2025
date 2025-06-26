@@ -35,7 +35,7 @@ async function startServer() {
   // Apply middleware
   app.use(cors());
   app.use(express.json());
-  
+
   // Apply Apollo GraphQL middleware
   server.applyMiddleware({ app, path: '/graphql' });
 
