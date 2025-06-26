@@ -11,6 +11,18 @@ const port = parseInt(process.env.PORT || '4000', 10);
 app.use(cors());
 app.use(express.json());
 
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'OmniAuthor Pro 2025 API Server',
+    version: '1.0.0',
+    endpoints: {
+      health: '/health',
+      graphql: '/graphql'
+    }
+  });
+});
+
 // Health check endpoint (always available)
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
