@@ -17,7 +17,20 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd packages/server && npm run dev"
+args = "cd packages/server && npm install && npm run dev"
+
+[[workflows.workflow]]
+name = "Start Full Stack"
+author = 29890612
+mode = "parallel"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd packages/server && npm install && npm run dev"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd packages/client && npm install && npm run dev"
 
 [[ports]]
 localPort = 4000
