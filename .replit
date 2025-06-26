@@ -6,3 +6,19 @@ channel = "stable-24_05"
 
 [deployment]
 run = ["sh", "-c", "node index.js"]
+
+[workflows]
+runButton = "Start Server"
+
+[[workflows.workflow]]
+name = "Start Server"
+author = 29890612
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd packages/server && npm run dev"
+
+[[ports]]
+localPort = 4000
+externalPort = 80
