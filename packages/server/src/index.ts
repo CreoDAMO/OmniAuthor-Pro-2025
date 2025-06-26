@@ -1,5 +1,7 @@
+
 import express from 'express';
-import { ApolloServer } from 'apollo-server-express';
+import { ApolloServer } from '@apollo/server';
+import { expressMiddleware } from '@apollo/server/express4';
 import cors from 'cors';
 import { typeDefs, resolvers } from './graphql/schema';
 
@@ -20,7 +22,10 @@ app.get('/', (req, res) => {
 
 // Health check endpoint (always available)
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok' });
+  res.json({ 
+    status: 'ok',
+    timestamp: new Date().toISOString()
+  });
 });
 
 async function startServer() {
@@ -37,14 +42,14 @@ async function startServer() {
   app.use(express.json());
 
   // Apply Apollo GraphQL middleware
-  server.applyMiddleware({ app, path: '/graphql' });
+  app.use('/graphql', expressMiddleware(server));
 
   // Only start listening if not in test environment
   if (process.env.NODE_ENV !== 'test') {
     app.listen(port, '0.0.0.0', () => {
       console.log(`🚀 Server running at http://0.0.0.0:${port}`);
       console.log(`📈 Health check at http://0.0.0.0:${port}/health`);
-      console.log(`🎯 GraphQL endpoint at http://0.0.0.0:${port}${server.graphqlPath}`);
+      console.log(`🎯 GraphQL endpoint at http://0.0.0.0:${port}/graphql`);
     });
   }
 
