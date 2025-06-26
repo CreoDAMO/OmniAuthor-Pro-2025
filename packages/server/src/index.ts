@@ -29,6 +29,9 @@ async function startServer() {
     resolvers,
   });
 
+  // Start Apollo Server first
+  await server.start();
+
   // Apply middleware
   app.use(cors());
   app.use(express.json());
