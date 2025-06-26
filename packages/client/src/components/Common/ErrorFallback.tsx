@@ -30,7 +30,7 @@ const ErrorFallback: React.FC<ErrorFallbackProps> = ({ error, resetErrorBoundary
             />
           </svg>
         </div>
-        
+
         <div className="mt-4 text-center">
           <h3 className="text-lg font-medium text-gray-900 dark:text-white">
             Something went wrong
@@ -38,7 +38,7 @@ const ErrorFallback: React.FC<ErrorFallbackProps> = ({ error, resetErrorBoundary
           <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
             We encountered an unexpected error. Please try again.
           </p>
-          
+
           {process.env.NODE_ENV === 'development' && (
             <details className="mt-4 text-left">
               <summary className="cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -51,7 +51,7 @@ const ErrorFallback: React.FC<ErrorFallbackProps> = ({ error, resetErrorBoundary
             </details>
           )}
         </div>
-        
+
         <div className="mt-6">
           <button
             onClick={resetErrorBoundary}

@@ -1,20 +1,51 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
 
 interface Subscription {
-  id: string;
-  tier: 'FREE' | 'PRO' | 'ENTERPRISE';
+  tier: 'FREE' | 'PREMIUM' | 'ENTERPRISE';
   status: 'active' | 'inactive' | 'cancelled';
   expiresAt?: Date;
 }
 
 interface SubscriptionContextType {
   subscription: Subscription | null;
-  loading: boolean;
-  updateSubscription: (subscription: Subscription) => void;
-  cancelSubscription: () => void;
+  upgradeSubscription: (tier: 'PREMIUM' | 'ENTERPRISE') => Promise<void>;
+  cancelSubscription: () => Promise<void>;
 }
 
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
+
+interface SubscriptionProviderProps {
+  children: ReactNode;
+}
+
+export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ children }) => {
+  const [subscription, setSubscription] = useState<Subscription>({
+    tier: 'FREE',
+    status: 'active'
+  });
+
+  const upgradeSubscription = async (tier: 'PREMIUM' | 'ENTERPRISE') => {
+    // Mock upgrade - in real app, this would handle payment processing
+    setSubscription({
+      tier,
+      status: 'active',
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
+    });
+  };
+
+  const cancelSubscription = async () => {
+    setSubscription({
+      tier: 'FREE',
+      status: 'active'
+    });
+  };
+
+  return (
+    <SubscriptionContext.Provider value={{ subscription, upgradeSubscription, cancelSubscription }}>
+      {children}
+    </SubscriptionContext.Provider>
+  );
+};
 
 export const useSubscription = (): SubscriptionContextType => {
   const context = useContext(SubscriptionContext);
@@ -22,54 +53,4 @@ export const useSubscription = (): SubscriptionContextType => {
     throw new Error('useSubscription must be used within a SubscriptionProvider');
   }
   return context;
-};
-
-interface SubscriptionProviderProps {
-  children: ReactNode;
-}
-
-export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ children }) => {
-  const [subscription, setSubscription] = useState<Subscription | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // Load subscription from localStorage or API
-    const loadSubscription = async () => {
-      try {
-        const savedSubscription = localStorage.getItem('subscription');
-        if (savedSubscription) {
-          setSubscription(JSON.parse(savedSubscription));
-        }
-      } catch (error) {
-        console.error('Failed to load subscription:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadSubscription();
-  }, []);
-
-  const updateSubscription = (newSubscription: Subscription) => {
-    setSubscription(newSubscription);
-    localStorage.setItem('subscription', JSON.stringify(newSubscription));
-  };
-
-  const cancelSubscription = () => {
-    setSubscription(null);
-    localStorage.removeItem('subscription');
-  };
-
-  const value: SubscriptionContextType = {
-    subscription,
-    loading,
-    updateSubscription,
-    cancelSubscription,
-  };
-
-  return (
-    <SubscriptionContext.Provider value={value}>
-      {children}
-    </SubscriptionContext.Provider>
-  );
 };
