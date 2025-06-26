@@ -1,14 +1,22 @@
 modules = ["nodejs-20", "bash", "web"]
 run = "node index.js"
 
+[[ports]]
+localPort = 4001
+externalPort = 80
+
+[[ports]]
+localPort = 5000
+externalPort = 8080
+
 [nix]
 channel = "stable-24_05"
 
 [deployment]
-run = ["sh", "-c", "cd packages/client && npm install && npm run dev -- --host 0.0.0.0 --port 5000"]
+run = ["sh", "-c", "node index.js"]
 
 [workflows]
-runButton = "Start Full Stack"
+runButton = "Start Full Stack Clean"
 
 [[workflows.workflow]]
 name = "Start Server"
@@ -41,8 +49,18 @@ mode = "sequential"
 task = "shell.exec"
 args = "cd packages/client && npm install && npm run dev"
 
-[[ports]]
-localPort = 4000
+[[workflows.workflow]]
+name = "Start Full Stack Clean"
+author = 29890612
+mode = "parallel"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd packages/server && npm install && PORT=4001 npm run dev"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd packages/client && npm install && npm run dev"
 
 [[ports]]
 localPort = 5000

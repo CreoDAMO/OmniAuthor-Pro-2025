@@ -6,7 +6,7 @@ import cors from 'cors';
 import { typeDefs, resolvers } from './graphql/schema';
 
 const app = express();
-const port = parseInt(process.env.PORT || '4000', 10);
+const port = parseInt(process.env.PORT || '4001', 10);
 
 // Root endpoint
 app.get('/', (req, res) => {
