@@ -32,6 +32,15 @@ args = "cd packages/server && npm install && npm run dev"
 task = "shell.exec"
 args = "cd packages/client && npm install && npm run dev"
 
+[[workflows.workflow]]
+name = "Start Client Only"
+author = 29890612
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd packages/client && npm install && npm run dev"
+
 [[ports]]
 localPort = 4000
 
