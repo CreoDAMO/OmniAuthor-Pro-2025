@@ -20,13 +20,13 @@
     "prepare": "husky install"
   },
   "devDependencies": {
-    "lerna": "^8.0.2",
     "@typescript-eslint/eslint-plugin": "^6.19.0",
     "@typescript-eslint/parser": "^6.19.0",
     "eslint": "^8.56.0",
-    "prettier": "^3.2.4",
     "husky": "^8.0.3",
-    "lint-staged": "^15.2.0"
+    "lerna": "^8.0.2",
+    "lint-staged": "^15.2.0",
+    "prettier": "^3.2.4"
   },
   "husky": {
     "hooks": {
@@ -39,5 +39,8 @@
       "prettier --write"
     ]
   },
-  "packageManager": "npm@10.8.2"
+  "packageManager": "npm@10.8.2",
+  "dependencies": {
+    "express": "^4.21.2"
+  }
 }
