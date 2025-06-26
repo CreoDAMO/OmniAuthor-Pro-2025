@@ -38,7 +38,10 @@ async function startServer() {
   await server.start();
 
   // Apply middleware
-  app.use(cors());
+  app.use(cors({
+    origin: ['http://0.0.0.0:5000', 'http://localhost:5000', 'https://*.replit.dev', 'https://*.replit.app'],
+    credentials: true
+  }));
   app.use(express.json());
 
   // Apply Apollo GraphQL middleware
