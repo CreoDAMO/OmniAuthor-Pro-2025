@@ -34,4 +34,6 @@ args = "cd packages/client && npm install && npm run dev"
 
 [[ports]]
 localPort = 4000
-externalPort = 80
+
+[[ports]]
+localPort = 5000
