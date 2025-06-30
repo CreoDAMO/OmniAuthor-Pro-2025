@@ -1,0 +1,345 @@
+name: OmniAuthor Pro CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: '18'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  lint:
+    name: Lint Codebase
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run lint
+
+  test:
+    name: Test Suite
+    runs-on: ubuntu-latest
+    needs: lint
+    services:
+      mongodb:
+        image: mongo:6.0
+        env:
+          MONGO_INITDB_ROOT_USERNAME: testuser
+          MONGO_INITDB_ROOT_PASSWORD: testpassword
+        ports: [27017:27017]
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand(\"ping\").ok'" 
+          --health-interval 10s --health-timeout 5s --health-retries 5
+      redis:
+        image: redis:7
+        ports: [6379:6379]
+        options: >-
+          --health-cmd "redis-cli ping" 
+          --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run test
+        env:
+          MONGO_URI: mongodb://testuser:testpassword@localhost:27017/omniauthor-test?authSource=admin
+          REDIS_URL: redis://localhost:6379
+          JWT_SECRET: test-jwt-secret
+          OPENAI_API_KEY: test-openai-key
+          XAI_API_KEY: test-xai-key
+          COINBASE_COMMERCE_API_KEY: test-coinbase-commerce-key
+          COINBASE_WEBHOOK_SECRET: test-coinbase-webhook-secret
+          STRIPE_SECRET_KEY: test-stripe-key
+          SENDGRID_API_KEY: test-sendgrid-key
+          VITE_GRAPHQL_URL: http://localhost:4000/graphql
+          VITE_WS_URL: ws://localhost:4000/graphql
+          VITE_STRIPE_PUBLISHABLE_KEY: pk_test_dummy
+          VITE_COINBASE_REDIRECT_URL: http://localhost:3000/payment/success
+          VITE_COINBASE_CANCEL_URL: http://localhost:3000/payment/cancel
+      - uses: codecov/codecov-action@v4
+        if: success() && secrets.CODECOV_TOKEN
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: packages/client/coverage/lcov.info
+          flags: client
+          name: codecov-client
+      - uses: codecov/codecov-action@v4
+        if: success() && secrets.CODECOV_TOKEN
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: packages/server/coverage/lcov.info
+          flags: server
+          name: codecov-server
+
+  build_apps:
+    name: Build Applications
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build
+        env:
+          VITE_GRAPHQL_URL: ${{ secrets.VITE_STAGING_GRAPHQL_URL || 'http://localhost:4000/graphql' }}
+          VITE_WS_URL: ${{ secrets.VITE_STAGING_WS_URL || 'ws://localhost:4000/graphql' }}
+          VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.VITE_STAGING_STRIPE_PUBLISHABLE_KEY || 'pk_test_dummy' }}
+          VITE_COINBASE_REDIRECT_URL: ${{ secrets.VITE_STAGING_COINBASE_REDIRECT_URL || 'http://localhost:3000/payment/success' }}
+          VITE_COINBASE_CANCEL_URL: ${{ secrets.VITE_STAGING_COINBASE_CANCEL_URL || 'http://localhost:3000/payment/cancel' }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: server-build
+          path: |
+            packages/server/dist
+            packages/server/package.json
+            packages/server/package-lock.json
+            packages/shared/dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: client-build
+          path: |
+            packages/client/dist
+            packages/client/nginx.conf
+            packages/client/package.json
+            packages/client/package-lock.json
+
+  security_scans:
+    name: Security Scans
+    runs-on: ubuntu-latest
+    needs: build_apps
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      - run: npm ci
+      - run: npm audit --audit-level=moderate
+      - uses: snyk/actions/node@master
+        if: success() && secrets.SNYK_TOKEN
+        continue-on-error: true
+        with:
+          args: --severity-threshold=high
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+  e2e_tests:
+    name: End-to-End Tests
+    runs-on: ubuntu-latest
+    needs: build_apps
+    services:
+      mongodb:
+        image: mongo:6.0
+        env:
+          MONGO_INITDB_ROOT_USERNAME: testuser
+          MONGO_INITDB_ROOT_PASSWORD: testpassword
+        ports: [27017:27017]
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand(\"ping\").ok'" 
+          --health-interval 10s --health-timeout 5s --health-retries 5
+      redis:
+        image: redis:7
+        ports: [6379:6379]
+        options: >-
+          --health-cmd "redis-cli ping" 
+          --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/Cypress
+          key: cypress-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            cypress-${{ runner.os }}-
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: server-build
+          path: packages/server/
+      - uses: actions/download-artifact@v4
+        with:
+          name: client-build
+          path: packages/client/
+      - name: Start backend server
+        working-directory: packages/server
+        env:
+          NODE_ENV: development
+          MONGO_URI: mongodb://testuser:testpassword@localhost:27017/omniauthor-e2e?authSource=admin
+          REDIS_URL: redis://localhost:6379
+          JWT_SECRET: test-e2e-jwt-secret
+        run: npm start &
+      - name: Start frontend server
+        working-directory: packages/client
+        env:
+          VITE_GRAPHQL_URL: http://localhost:4000/graphql
+          VITE_WS_URL: ws://localhost:4000/graphql
+        run: npm run preview -- --port 5000 &
+      - run: |
+          npx wait-on http://localhost:4000/health
+          npx wait-on http://localhost:5000
+      - working-directory: packages/client
+        run: npx cypress run
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: cypress-artifacts
+          path: packages/client/cypress/screenshots/
+
+  build_and_push_docker:
+    name: Build and Push Docker Images
+    runs-on: ubuntu-latest
+    needs: [e2e_tests, security_scans]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=,suffix=,format=long
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+      - uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./packages/server/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}-server
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./packages/client/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}-client
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            VITE_GRAPHQL_URL=${{ secrets.VITE_PROD_GRAPHQL_URL || secrets.VITE_STAGING_GRAPHQL_URL }}
+            VITE_WS_URL=${{ secrets.VITE_PROD_WS_URL || secrets.VITE_STAGING_WS_URL }}
+            VITE_STRIPE_PUBLISHABLE_KEY=${{ secrets.VITE_PROD_STRIPE_PUBLISHABLE_KEY || secrets.VITE_STAGING_STRIPE_PUBLISHABLE_KEY }}
+            VITE_COINBASE_REDIRECT_URL=${{ secrets.VITE_PROD_COINBASE_REDIRECT_URL || secrets.VITE_STAGING_COINBASE_REDIRECT_URL }}
+            VITE_COINBASE_CANCEL_URL=${{ secrets.VITE_PROD_COINBASE_CANCEL_URL || secrets.VITE_STAGING_COINBASE_CANCEL_URL }}
+      - uses: aquasecurity/trivy-action@master
+        if: success()
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-server
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+      - uses: aquasecurity/trivy-action@master
+        if: success()
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-client
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+  deploy_staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: build_and_push_docker
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    environment:
+      name: staging
+      url: ${{ secrets.STAGING_APP_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          chmod +x ./scripts/deploy.sh
+          ./scripts/deploy.sh staging ${{ github.sha }}
+        env:
+          ENVIRONMENT: staging
+          VERSION: ${{ github.sha }}
+          RENDER_API_KEY: ${{ secrets.RENDER_STAGING_API_KEY }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_STAGING_TOKEN }}
+          MONGO_ATLAS_URI: ${{ secrets.STAGING_MONGO_ATLAS_URI }}
+          REDIS_CLOUD_URL: ${{ secrets.STAGING_REDIS_CLOUD_URL }}
+          JWT_SECRET: ${{ secrets.STAGING_JWT_SECRET }}
+          STRIPE_SECRET_KEY: ${{ secrets.STAGING_STRIPE_SECRET_KEY }}
+          COINBASE_COMMERCE_API_KEY: ${{ secrets.STAGING_COINBASE_COMMERCE_API_KEY }}
+          RENDER_STAGING_SERVICE_ID: ${{ secrets.RENDER_STAGING_SERVICE_ID }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          GRAFANA_API_KEY: ${{ secrets.STAGING_GRAFANA_API_KEY }}
+
+  deploy_production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: build_and_push_docker
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment:
+      name: production
+      url: ${{ secrets.PRODUCTION_APP_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          chmod +x ./scripts/deploy.sh
+          ./scripts/deploy.sh production ${{ github.sha }}
+        env:
+          ENVIRONMENT: production
+          VERSION: ${{ github.sha }}
+          RENDER_API_KEY: ${{ secrets.RENDER_PROD_API_KEY }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_PROD_TOKEN }}
+          MONGO_ATLAS_URI: ${{ secrets.PROD_MONGO_ATLAS_URI }}
+          REDIS_CLOUD_URL: ${{ secrets.PROD_REDIS_CLOUD_URL }}
+          JWT_SECRET: ${{ secrets.PROD_JWT_SECRET }}
+          STRIPE_SECRET_KEY: ${{ secrets.PROD_STRIPE_SECRET_KEY }}
+          COINBASE_COMMERCE_API_KEY: ${{ secrets.PROD_COINBASE_COMMERCE_API_KEY }}
+          RENDER_PRODUCTION_SERVICE_ID: ${{ secrets.RENDER_PRODUCTION_SERVICE_ID }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          GRAFANA_API_KEY: ${{ secrets.PROD_GRAFANA_API_KEY }}
+
+  notify_failure:
+    name: Notify on Failure
+    runs-on: ubuntu-latest
+    if: failure() && github.event_name == 'push'
+    needs: [lint, test, build_apps, security_scans, e2e_tests, build_and_push_docker, deploy_staging, deploy_production]
+    steps:
+      - uses: 8398a7/action-slack@v3
+        if: success() && secrets.SLACK_WEBHOOK_URL
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
