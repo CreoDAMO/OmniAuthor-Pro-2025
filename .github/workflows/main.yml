@@ -34,16 +34,16 @@ jobs:
         env:
           MONGO_INITDB_ROOT_USERNAME: testuser
           MONGO_INITDB_ROOT_PASSWORD: testpassword
-        ports: [27017:27017]
+        ports:
+          - 27017:27017
         options: >-
-          --health-cmd "mongosh --eval 'db.runCommand(\"ping\").ok'" 
-          --health-interval 10s --health-timeout 5s --health-retries 5
+          --health-cmd "mongosh --eval 'db.runCommand(\"ping\").ok'" --health-interval 10s --health-timeout 5s --health-retries 5
       redis:
         image: redis:7
-        ports: [6379:6379]
+        ports:
+          - 6379:6379
         options: >-
-          --health-cmd "redis-cli ping" 
-          --health-interval 10s --health-timeout 5s --health-retries 5
+          --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -147,16 +147,16 @@ jobs:
         env:
           MONGO_INITDB_ROOT_USERNAME: testuser
           MONGO_INITDB_ROOT_PASSWORD: testpassword
-        ports: [27017:27017]
+        ports:
+          - 27017:27017
         options: >-
-          --health-cmd "mongosh --eval 'db.runCommand(\"ping\").ok'" 
-          --health-interval 10s --health-timeout 5s --health-retries 5
+          --health-cmd "mongosh --eval 'db.runCommand(\"ping\").ok'" --health-interval 10s --health-timeout 5s --health-retries 5
       redis:
         image: redis:7
-        ports: [6379:6379]
+        ports:
+          - 6379:6379
         options: >-
-          --health-cmd "redis-cli ping" 
-          --health-interval 10s --health-timeout 5s --health-retries 5
+          --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -278,8 +278,7 @@ jobs:
     needs: build_and_push_docker
     if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
     environment:
-      name: staging
-      url: ${{ secrets.STAGING_APP_URL }}
+      name: staging   # URL removed
     steps:
       - uses: actions/checkout@v4
       - run: |
@@ -306,8 +305,7 @@ jobs:
     needs: build_and_push_docker
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment:
-      name: production
-      url: ${{ secrets.PRODUCTION_APP_URL }}
+      name: production   # URL removed
     steps:
       - uses: actions/checkout@v4
       - run: |
