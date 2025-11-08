@@ -29,7 +29,7 @@
     "graphql-subscriptions": "^2.0.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.0.3",
-    "nodemailer": "^6.9.8",
+    "nodemailer": "^7.0.10",
     "openai": "^4.24.1",
     "redis": "^4.6.12",
     "stripe": "^14.9.0",
