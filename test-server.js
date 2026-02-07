@@ -52,6 +52,11 @@ app.post('/api/coinbase/webhook', express.raw({ type: 'application/json' }), (re
     res.status(400).send('Invalid request body');
     return;
   }
+  if (typeof req.body !== 'string' && !Buffer.isBuffer(req.body)) {
+    console.error('Invalid body type received in Coinbase webhook:', typeof req.body);
+    res.status(400).send('Invalid request body');
+    return;
+  }
   console.log('Received Coinbase webhook:', {
     signature: signature ? 'present' : 'missing',
     bodyLength: req.body.length
