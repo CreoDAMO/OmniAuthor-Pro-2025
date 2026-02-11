@@ -11,7 +11,7 @@
     "lint": "eslint src/**/*.ts --fix"
   },
   "dependencies": {
-    "@apollo/server": "^4.10.4",
+    "@apollo/server": "^5.4.0",
     "@coinbase/agentkit": "^0.8.2",
     "@coinbase/cdp-sdk": "^1.18.0",
     "@coinbase/onchainkit": "^0.29.3",
